@@ -1,0 +1,311 @@
+@model TurnoutStore.Models.TicketBookingViewModel
+@inject TurnoutStore.Services.ICurrencyService CurrencyService
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = $"Exhibition Pass #TB-{Model.BookingId?.ToString("D5")} - The Turnout Store";
+    var isForeign = Model.IsForeign;
+    var symbol = isForeign ? "$" : "Rs. ";
+    var currency = isForeign ? "USD" : "LKR";
+    var refCode = $"TB-{Model.BookingId?.ToString("D5") ?? "00001"}";
+}
+
+<div class="container py-5">
+    <!-- Success Alert & Top Action Bar (Outside #ticket-pass) -->
+    <div class="text-center mb-4">
+        <div class="d-inline-flex align-items-center justify-content-center bg-success text-white rounded-circle mb-3" style="width: 65px; height: 65px;">
+            <i class="fas fa-check fa-2x"></i>
+        </div>
+        <h2 class="fw-bold text-dark">Reservation Successfully Confirmed!</h2>
+        <p class="text-secondary mb-4">Your commemorative exhibition pass has been issued. Download your pass below or show it on your mobile device at admission.</p>
+
+        <!-- Action Buttons (Outside Ticket Div) -->
+        <div class="d-flex flex-wrap justify-content-center gap-3 mb-5">
+            <button id="btnDownloadPdf" class="btn btn-warning btn-lg fw-bold shadow px-4 py-2" onclick="downloadTicketPdf()">
+                <i class="fas fa-file-pdf me-2 text-danger"></i> 📥 Download Ticket as PDF
+            </button>
+            <button class="btn btn-outline-dark btn-lg fw-semibold px-4 py-2" onclick="window.print()">
+                <i class="fas fa-print me-2"></i> 🖨️ Print Pass
+            </button>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary btn-lg fw-semibold px-4 py-2">
+                <i class="fas fa-store me-2"></i> Return to Store
+            </a>
+        </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- CREATIVE MUSEUM / EXHIBITION TICKET PASS (id="ticket-pass") -->
+    <!-- ======================================================== -->
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-10">
+            <div id="ticket-pass" class="ticket-container bg-white shadow-lg rounded-4 overflow-hidden position-relative mb-5">
+                <div class="row g-0">
+                    <!-- MAIN TICKET STUB (Left Side) -->
+                    <div class="col-lg-8 p-4 p-md-5 d-flex flex-column justify-content-between position-relative main-stub">
+                        <!-- Top Header Brand -->
+                        <div class="d-flex justify-content-between align-items-start mb-4 border-bottom pb-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <img src="~/images/logo.png" alt="The Turnout Model Railway" class="rounded-circle border shadow-sm p-1 bg-white" style="width: 58px; height: 58px; object-fit: contain;" />
+                                <div>
+                                    <h4 class="fw-bold mb-0 text-dark tracking-wide">THE TURNOUT MODEL RAILWAY</h4>
+                                    <span class="text-muted small text-uppercase fw-semibold tracking-wider">Scale Miniatures &amp; Railway Studio</span>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-warning text-dark px-3 py-2 text-uppercase fw-bold rounded-pill">
+                                    <i class="fas fa-id-badge me-1"></i> Exhibition Pass
+                                </span>
+                                <div class="font-monospace text-muted small mt-1">REF: <strong>@refCode</strong></div>
+                            </div>
+                        </div>
+
+                        <!-- Ticket Body Info Grid -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-sm-6">
+                                <span class="text-muted small text-uppercase d-block fw-semibold">Lead Visitor</span>
+                                <span class="fs-5 fw-bold text-dark">@Model.CustomerName</span>
+                                <small class="text-secondary d-block"><i class="fas fa-phone me-1"></i>@Model.PhoneNumber</small>
+                            </div>
+                            <div class="col-sm-6">
+                                <span class="text-muted small text-uppercase d-block fw-semibold">Admission Category</span>
+                                @if (isForeign)
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success fs-6 px-3 py-1 mt-1">
+                                        <i class="fas fa-globe-americas me-1"></i> Foreign Visitor ($10 / $5)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-primary-subtle text-primary border border-primary fs-6 px-3 py-1 mt-1">
+                                        <i class="fas fa-id-card me-1"></i> Local Resident (Rs. 1,000 / 500)
+                                    </span>
+                                }
+                            </div>
+
+                            <div class="col-sm-6 mt-3">
+                                <span class="text-muted small text-uppercase d-block fw-semibold">Visit Date</span>
+                                <span class="fs-5 fw-bold text-primary">
+                                    <i class="fas fa-calendar-check me-1"></i>@Model.VisitDate.ToString("dddd, MMMM dd, yyyy")
+                                </span>
+                            </div>
+                            <div class="col-sm-6 mt-3">
+                                <span class="text-muted small text-uppercase d-block fw-semibold">Session Time Slot</span>
+                                <span class="fs-5 fw-bold text-dark">
+                                    <i class="fas fa-clock me-1 text-secondary"></i>@Model.TimeSlot
+                                </span>
+                            </div>
+
+                            <div class="col-sm-6 mt-3">
+                                <span class="text-muted small text-uppercase d-block fw-semibold">Party Headcount</span>
+                                <span class="fs-6 fw-semibold text-dark">
+                                    @Model.AdultCount Adult@(Model.AdultCount > 1 ? "s" : "")
+                                    @if (Model.ChildCount > 0)
+                                    {
+                                        <text>, @Model.ChildCount Child@(Model.ChildCount > 1 ? "ren" : "")</text>
+                                    }
+                                </span>
+                            </div>
+                            <div class="col-sm-6 mt-3">
+                                <span class="text-muted small text-uppercase d-block fw-semibold">Total Paid</span>
+                                <span class="fs-4 fw-bold text-success">
+                                    @symbol@Model.ConvertedTotal.ToString("N2") <small class="fs-6 text-muted">@currency</small>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Studio Location & Guidelines Footer -->
+                        <div class="pt-3 border-top d-flex justify-content-between align-items-center">
+                            <div class="small text-muted">
+                                <i class="fas fa-map-marker-alt text-warning me-1"></i>
+                                Cemetery Road, 18th Mile Post Junction, Western Province, Sri Lanka | www.theturnout.lk
+                            </div>
+                            <!-- Validation Stamp Graphic -->
+                            <div class="ticket-seal text-center px-3 py-1 border border-2 border-danger text-danger rounded-2 text-uppercase fw-bold small">
+                                <i class="fas fa-certificate me-1"></i> Validated Entry
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TEAR-OFF TICKET STUB (Right Side) -->
+                    <div class="col-lg-4 bg-light p-4 p-md-5 d-flex flex-column justify-content-between border-start border-2 border-dashed position-relative tear-stub">
+                        <!-- Perforated Cutout Notches -->
+                        <div class="notch notch-top d-none d-lg-block"></div>
+                        <div class="notch notch-bottom d-none d-lg-block"></div>
+
+                        <div class="text-center mb-3">
+                            <span class="badge bg-dark text-white px-3 py-1 text-uppercase fw-semibold mb-2">Gate Pass Stub</span>
+                            <h5 class="fw-bold mb-1 font-monospace text-primary">#@refCode</h5>
+                            <div class="small text-muted">@Model.VisitDate.ToString("yyyy-MM-dd")</div>
+                            <div class="small text-muted fw-semibold">@Model.TimeSlot</div>
+                        </div>
+
+                        <!-- Barcode Representation -->
+                        <div class="text-center my-3 bg-white p-3 rounded-3 border">
+                            <div class="barcode-svg-container d-flex justify-content-center align-items-center gap-1 mb-1" style="height: 60px;">
+                                <span class="bar b-thick"></span>
+                                <span class="bar b-thin"></span>
+                                <span class="bar b-med"></span>
+                                <span class="bar b-thick"></span>
+                                <span class="bar b-thin"></span>
+                                <span class="bar b-thick"></span>
+                                <span class="bar b-med"></span>
+                                <span class="bar b-thin"></span>
+                                <span class="bar b-thick"></span>
+                                <span class="bar b-thin"></span>
+                                <span class="bar b-med"></span>
+                                <span class="bar b-thick"></span>
+                                <span class="bar b-med"></span>
+                                <span class="bar b-thin"></span>
+                                <span class="bar b-thick"></span>
+                                <span class="bar b-thin"></span>
+                                <span class="bar b-thick"></span>
+                                <span class="bar b-med"></span>
+                                <span class="bar b-thin"></span>
+                                <span class="bar b-thick"></span>
+                                <span class="bar b-thin"></span>
+                                <span class="bar b-med"></span>
+                                <span class="bar b-thick"></span>
+                                <span class="bar b-thin"></span>
+                            </div>
+                            <div class="font-monospace text-muted small fw-bold tracking-widest">
+                                *TB@(Model.BookingId?.ToString("D6"))*
+                            </div>
+                        </div>
+
+                        <!-- Stub Terms & Information -->
+                        <div class="text-center small text-muted">
+                            <p class="mb-1"><strong>Admit: @Model.AdultCount Adults, @Model.ChildCount Kids</strong></p>
+                            <p class="mb-0" style="font-size: 0.72rem; line-height: 1.3;">
+                                Please present barcode at exhibition scanner upon entry. Non-refundable and non-transferable.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Styles for Exhibition Ticket Pass -->
+<style>
+    .ticket-container {
+        border: 2px dashed #cbd5e1;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .main-stub {
+        background: linear-gradient(to right, #ffffff, #fafafa);
+    }
+
+    .tear-stub {
+        background-color: #f8fafc !important;
+    }
+
+    /* Perforation Cutout Notches */
+    .notch {
+        position: absolute;
+        width: 26px;
+        height: 26px;
+        background-color: #f8f9fa;
+        border-radius: 50%;
+        left: -13px;
+        z-index: 2;
+        border: 1px solid #cbd5e1;
+    }
+
+    .notch-top {
+        top: -13px;
+    }
+
+    .notch-bottom {
+        bottom: -13px;
+    }
+
+    /* Ticket Stamp */
+    .ticket-seal {
+        letter-spacing: 1.5px;
+        transform: rotate(-3deg);
+        display: inline-block;
+    }
+
+    /* CSS Barcode lines */
+    .barcode-svg-container .bar {
+        display: inline-block;
+        height: 100%;
+        background-color: #111;
+    }
+
+    .bar.b-thin {
+        width: 2px;
+    }
+
+    .bar.b-med {
+        width: 4px;
+    }
+
+    .bar.b-thick {
+        width: 7px;
+    }
+
+    /* Print styles */
+    @@media print {
+        body {
+            background: #fff !important;
+        }
+
+        .no-print,
+        header,
+        footer,
+        .btn,
+        .top-bar {
+            display: none !important;
+        }
+
+        .container {
+            max-width: 100% !important;
+            padding: 0 !important;
+        }
+
+        #ticket-pass {
+            border: 2px dashed #000 !important;
+            box-shadow: none !important;
+            page-break-inside: avoid;
+        }
+    }
+</style>
+
+<!-- html2pdf.js CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+@section Scripts {
+<script>
+    function downloadTicketPdf() {
+        const btn = document.getElementById('btnDownloadPdf');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating PDF...';
+        btn.disabled = true;
+
+        const element = document.getElementById('ticket-pass');
+        
+        const opt = {
+            margin:       [10, 10, 10, 10],
+            filename:     'Turnout_Ticket_@(Model.BookingId?.ToString("D5")).pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff' },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+        };
+
+        // Standard html2pdf invocation
+        html2pdf().set(opt).from(element).save('Turnout_Ticket.pdf')
+            .then(function () {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            })
+            .catch(function (error) {
+                console.warn('Advanced PDF options failed, falling back to direct save:', error);
+                html2pdf().from(document.getElementById('ticket-pass')).save('Turnout_Ticket.pdf');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+    }
+</script>
+}

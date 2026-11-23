@@ -1,0 +1,276 @@
+@model TurnoutStore.Models.ProductFormViewModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = $"Edit Product - {Model.Name}";
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Header Navigation -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <a asp-action="Products" class="text-decoration-none text-muted small">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Products
+                    </a>
+                    <h2 class="fw-bold mb-1 mt-1"><i class="fas fa-pencil-alt text-primary me-2"></i>Edit Product</h2>
+                    <p class="text-secondary mb-0">Modify inventory levels, pricing, or technical scale specs for <strong>@Model.Name</strong>.</p>
+                </div>
+                <div>
+                    <span class="badge @(Model.IsActive ? "bg-success" : "bg-secondary") fs-6 px-3 py-2">
+                        @(Model.IsActive ? "Active" : "Inactive")
+                    </span>
+                </div>
+            </div>
+
+            <!-- Edit Form Card -->
+            <div class="card shadow-sm border-0 p-4">
+                <form asp-action="EditProduct" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+
+                    <!-- Hidden Keys -->
+                    <input type="hidden" asp-for="ProductId" />
+                    <input type="hidden" asp-for="ExistingImageUrl1" />
+                    <input type="hidden" asp-for="ExistingImageUrl2" />
+                    <input type="hidden" asp-for="ExistingImageUrl3" />
+                    <input type="hidden" asp-for="ExistingImageUrl4" />
+                    <input type="hidden" asp-for="ExistingImageUrl5" />
+
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4" role="alert"></div>
+
+                    <div class="row g-4">
+                        <!-- Left Column: Core Identity -->
+                        <div class="col-md-7">
+                            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                                <i class="fas fa-info-circle me-2 text-primary"></i>General Information
+                            </h5>
+
+                            <!-- SKU -->
+                            <div class="mb-3">
+                                <label asp-for="Sku" class="form-label fw-semibold">SKU / Item Code <span class="text-danger">*</span></label>
+                                <input asp-for="Sku" class="form-control" required />
+                                <span asp-validation-for="Sku" class="text-danger small"></span>
+                                <small class="text-muted d-block mt-1">Unique store identifier code for inventory tracking.</small>
+                            </div>
+
+                            <!-- Name -->
+                            <div class="mb-3">
+                                <label asp-for="Name" class="form-label fw-semibold">Product Title <span class="text-danger">*</span></label>
+                                <input asp-for="Name" class="form-control" required />
+                                <span asp-validation-for="Name" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="mb-3">
+                                <label asp-for="Description" class="form-label fw-semibold">Description</label>
+                                <textarea asp-for="Description" rows="4" class="form-control" placeholder="Detailed architectural or rolling stock features, materials, weathering, couplers..."></textarea>
+                                <span asp-validation-for="Description" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Scale -->
+                            <div class="mb-3">
+                                <label asp-for="Scale" class="form-label fw-semibold">Model Scale</label>
+                                <input asp-for="Scale" class="form-control" list="scaleOptions" placeholder="Select or type scale (e.g. 1:87 (HO))" />
+                                <datalist id="scaleOptions">
+                                    <option value="1:87 (HO)" />
+                                    <option value="1:160 (N)" />
+                                    <option value="1:48 (O)" />
+                                    <option value="1:76 (OO)" />
+                                    <option value="1:12" />
+                                    <option value="1:24" />
+                                    <option value="Universal" />
+                                </datalist>
+                                <span asp-validation-for="Scale" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Product Gallery Images (5 Slots) -->
+                            <div class="border rounded p-3 bg-light mb-3">
+                                <h6 class="fw-bold text-dark mb-2">
+                                    <i class="fas fa-images text-primary me-2"></i>Product Gallery Images (Up to 5)
+                                </h6>
+                                <p class="small text-muted mb-3">Preview current photos and upload new files to replace any image slot (JPG, PNG, WEBP, GIF, max 5 MB each).</p>
+
+                                <!-- Image Slot 1 (Primary Cover) -->
+                                <div class="mb-3 border-bottom pb-3">
+                                    <label asp-for="ImageFile1" class="form-label fw-semibold small">
+                                        <span class="badge bg-primary me-1">1</span> Primary Cover Image
+                                    </label>
+                                    @if (!string.IsNullOrEmpty(Model.ExistingImageUrl1))
+                                    {
+                                        <div class="d-flex align-items-center gap-3 p-2 mb-2 border rounded bg-white">
+                                            <img src="@Model.ExistingImageUrl1" alt="Image 1" style="max-height: 70px; max-width: 90px; object-fit: contain;" class="rounded border" />
+                                            <div class="small">
+                                                <span class="badge bg-success mb-1">Current Cover</span>
+                                                <div class="text-truncate text-muted" style="max-width: 250px;">@Model.ExistingImageUrl1</div>
+                                            </div>
+                                        </div>
+                                    }
+                                    <input asp-for="ImageFile1" type="file" class="form-control form-control-sm" accept="image/png, image/jpeg, image/webp, image/gif" />
+                                    <span asp-validation-for="ImageFile1" class="text-danger small"></span>
+                                    <small class="text-muted d-block mt-1">Upload a new file to replace the primary image.</small>
+                                </div>
+
+                                <!-- Image Slot 2 -->
+                                <div class="mb-3 border-bottom pb-3">
+                                    <label asp-for="ImageFile2" class="form-label fw-semibold small">
+                                        <span class="badge bg-secondary me-1">2</span> Gallery Image 2 (Angle / Detail)
+                                    </label>
+                                    @if (!string.IsNullOrEmpty(Model.ExistingImageUrl2))
+                                    {
+                                        <div class="d-flex align-items-center gap-3 p-2 mb-2 border rounded bg-white">
+                                            <img src="@Model.ExistingImageUrl2" alt="Image 2" style="max-height: 70px; max-width: 90px; object-fit: contain;" class="rounded border" />
+                                            <div class="small">
+                                                <span class="badge bg-secondary mb-1">Current Image 2</span>
+                                                <div class="text-truncate text-muted" style="max-width: 250px;">@Model.ExistingImageUrl2</div>
+                                            </div>
+                                        </div>
+                                    }
+                                    <input asp-for="ImageFile2" type="file" class="form-control form-control-sm" accept="image/png, image/jpeg, image/webp, image/gif" />
+                                    <span asp-validation-for="ImageFile2" class="text-danger small"></span>
+                                </div>
+
+                                <!-- Image Slot 3 -->
+                                <div class="mb-3 border-bottom pb-3">
+                                    <label asp-for="ImageFile3" class="form-label fw-semibold small">
+                                        <span class="badge bg-secondary me-1">3</span> Gallery Image 3 (Side / Back View)
+                                    </label>
+                                    @if (!string.IsNullOrEmpty(Model.ExistingImageUrl3))
+                                    {
+                                        <div class="d-flex align-items-center gap-3 p-2 mb-2 border rounded bg-white">
+                                            <img src="@Model.ExistingImageUrl3" alt="Image 3" style="max-height: 70px; max-width: 90px; object-fit: contain;" class="rounded border" />
+                                            <div class="small">
+                                                <span class="badge bg-secondary mb-1">Current Image 3</span>
+                                                <div class="text-truncate text-muted" style="max-width: 250px;">@Model.ExistingImageUrl3</div>
+                                            </div>
+                                        </div>
+                                    }
+                                    <input asp-for="ImageFile3" type="file" class="form-control form-control-sm" accept="image/png, image/jpeg, image/webp, image/gif" />
+                                    <span asp-validation-for="ImageFile3" class="text-danger small"></span>
+                                </div>
+
+                                <!-- Image Slot 4 -->
+                                <div class="mb-3 border-bottom pb-3">
+                                    <label asp-for="ImageFile4" class="form-label fw-semibold small">
+                                        <span class="badge bg-secondary me-1">4</span> Gallery Image 4 (Scale / Context)
+                                    </label>
+                                    @if (!string.IsNullOrEmpty(Model.ExistingImageUrl4))
+                                    {
+                                        <div class="d-flex align-items-center gap-3 p-2 mb-2 border rounded bg-white">
+                                            <img src="@Model.ExistingImageUrl4" alt="Image 4" style="max-height: 70px; max-width: 90px; object-fit: contain;" class="rounded border" />
+                                            <div class="small">
+                                                <span class="badge bg-secondary mb-1">Current Image 4</span>
+                                                <div class="text-truncate text-muted" style="max-width: 250px;">@Model.ExistingImageUrl4</div>
+                                            </div>
+                                        </div>
+                                    }
+                                    <input asp-for="ImageFile4" type="file" class="form-control form-control-sm" accept="image/png, image/jpeg, image/webp, image/gif" />
+                                    <span asp-validation-for="ImageFile4" class="text-danger small"></span>
+                                </div>
+
+                                <!-- Image Slot 5 -->
+                                <div class="mb-2">
+                                    <label asp-for="ImageFile5" class="form-label fw-semibold small">
+                                        <span class="badge bg-secondary me-1">5</span> Gallery Image 5 (Packaging / Accessories)
+                                    </label>
+                                    @if (!string.IsNullOrEmpty(Model.ExistingImageUrl5))
+                                    {
+                                        <div class="d-flex align-items-center gap-3 p-2 mb-2 border rounded bg-white">
+                                            <img src="@Model.ExistingImageUrl5" alt="Image 5" style="max-height: 70px; max-width: 90px; object-fit: contain;" class="rounded border" />
+                                            <div class="small">
+                                                <span class="badge bg-secondary mb-1">Current Image 5</span>
+                                                <div class="text-truncate text-muted" style="max-width: 250px;">@Model.ExistingImageUrl5</div>
+                                            </div>
+                                        </div>
+                                    }
+                                    <input asp-for="ImageFile5" type="file" class="form-control form-control-sm" accept="image/png, image/jpeg, image/webp, image/gif" />
+                                    <span asp-validation-for="ImageFile5" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Pricing, Inventory & Dimensions -->
+                        <div class="col-md-5">
+                            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                                <i class="fas fa-tag me-2 text-success"></i>Pricing &amp; Inventory
+                            </h5>
+
+                            <!-- Price -->
+                            <div class="mb-3">
+                                <label asp-for="Price" class="form-label fw-semibold">Price (USD $) <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input asp-for="Price" type="number" step="0.01" min="0" class="form-control" required />
+                                </div>
+                                <span asp-validation-for="Price" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Stock Quantity -->
+                            <div class="mb-3">
+                                <label asp-for="StockQuantity" class="form-label fw-semibold">Available Stock <span class="text-danger">*</span></label>
+                                <input asp-for="StockQuantity" type="number" min="0" class="form-control" required />
+                                <span asp-validation-for="StockQuantity" class="text-danger small"></span>
+                            </div>
+
+                            <h5 class="fw-bold text-dark border-bottom pb-2 my-3">
+                                <i class="fas fa-ruler-combined me-2 text-secondary"></i>Physical Specifications
+                            </h5>
+
+                            <!-- Dimensions -->
+                            <div class="mb-3">
+                                <label asp-for="DimensionsMm" class="form-label fw-semibold">Dimensions (mm)</label>
+                                <input asp-for="DimensionsMm" class="form-control" placeholder="e.g., 185x42x55 mm" />
+                                <span asp-validation-for="DimensionsMm" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Weight -->
+                            <div class="mb-3">
+                                <label asp-for="WeightGrams" class="form-label fw-semibold">Weight (grams)</label>
+                                <div class="input-group">
+                                    <input asp-for="WeightGrams" type="number" step="0.1" min="0" class="form-control" placeholder="e.g., 140.5" />
+                                    <span class="input-group-text">g</span>
+                                </div>
+                                <span asp-validation-for="WeightGrams" class="text-danger small"></span>
+                            </div>
+
+                            <h5 class="fw-bold text-dark border-bottom pb-2 my-3">
+                                <i class="fas fa-toggle-on me-2 text-info"></i>Product Flags
+                            </h5>
+
+                            <!-- Is Unique -->
+                            <div class="form-check form-switch mb-2">
+                                <input asp-for="IsUnique" class="form-check-input" type="checkbox" id="isUniqueCheck" />
+                                <label class="form-check-label fw-semibold small" for="isUniqueCheck">
+                                    One-of-a-Kind Collector Piece
+                                </label>
+                            </div>
+
+                            <!-- Is Active -->
+                            <div class="form-check form-switch mb-3">
+                                <input asp-for="IsActive" class="form-check-input" type="checkbox" id="isActiveCheck" />
+                                <label class="form-check-label fw-semibold small" for="isActiveCheck">
+                                    Active (Visible on public storefront)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a asp-action="Products" class="btn btn-outline-secondary px-4">
+                            <i class="fas fa-times me-1"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary fw-bold px-4 py-2 shadow-sm">
+                            <i class="fas fa-check me-1"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,230 @@
+@inject TurnoutStore.Services.ICurrencyService CurrencyService
+@{
+    var activeCurrency = CurrencyService.GetUserCurrency(Context);
+    var returnUrl = Context.Request.Path + Context.Request.QueryString;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - The Turnout Store</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+    
+    <!-- FontAwesome 6 Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <!-- Site Favicon -->
+    <link rel="icon" type="image/png" href="~/images/logo.png" />
+    
+    <!-- Site Stylesheet with Cache Busting -->
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <!-- 1. TOP ANNOUNCEMENT BAR -->
+    <div class="top-bar">
+        <div class="container d-flex justify-content-between align-items-center">
+            <div class="announcement">
+                <i class="fas fa-train"></i>
+                <span>Precision Handcrafted Scale Miniatures &amp; Models | Worldwide Insured Shipping</span>
+            </div>
+            <div class="top-bar-links d-none d-md-flex align-items-center">
+                <span><i class="fab fa-whatsapp text-success me-1"></i> +94 70 385 6824</span>
+                <span class="ms-3 text-secondary d-none d-lg-inline"><i class="fas fa-clock me-1"></i> Wed - Sat: 10:00 AM - 6:00 PM</span>
+                <a href="#bookingModal" data-bs-toggle="modal" class="ms-3"><i class="fas fa-ticket-alt me-1"></i>Exhibition Tours</a>
+                @if (User.Identity != null && User.Identity.IsAuthenticated)
+                {
+                    <span class="ms-3 text-warning"><i class="fas fa-user-circle me-1"></i>Welcome, @User.Identity.Name</span>
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline ms-2">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-link btn-sm text-light p-0 text-decoration-none">
+                            <i class="fas fa-sign-out-alt me-1"></i>Logout
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <a asp-controller="Account" asp-action="Login"><i class="fas fa-sign-in-alt me-1"></i>Login</a>
+                    <a asp-controller="Account" asp-action="Register"><i class="fas fa-user-plus me-1"></i>Register</a>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. MAIN HEADER & NAVBAR -->
+    <header class="main-header">
+        <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
+            <div class="container">
+                <a class="navbar-brand d-flex align-items-center gap-2" asp-area="" asp-controller="Home" asp-action="Index">
+                    <img src="~/images/logo.png" alt="The Turnout Model Railway" class="rounded-circle bg-white p-1 shadow-sm" style="height: 42px; width: 42px; object-fit: contain;" />
+                    <span class="fw-bold">The Turnout Model Railway</span>
+                </a>
+                
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMainContent" aria-controls="navbarMainContent" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="navbarMainContent">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Home" asp-action="Index">
+                                <i class="fas fa-store me-1"></i> Catalog
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-warning fw-semibold" asp-controller="Ticket" asp-action="Book">
+                                <i class="fas fa-ticket-alt me-1"></i> Tickets &amp; Booking
+                            </a>
+                        </li>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link nav-admin-link" asp-controller="Admin" asp-action="Index">
+                                    <i class="fas fa-chart-line me-1"></i> Admin Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-admin-link" asp-controller="Admin" asp-action="Products">
+                                    <i class="fas fa-boxes me-1"></i> Manage Products
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-admin-link" asp-controller="Admin" asp-action="Orders">
+                                    <i class="fas fa-boxes-packing me-1"></i> Manage Orders
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-admin-link" asp-controller="Admin" asp-action="Bookings">
+                                    <i class="fas fa-ticket-alt me-1"></i> Manage Bookings
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-admin-link" asp-controller="Admin" asp-action="BankAccounts">
+                                    <i class="fas fa-university me-1"></i> Bank Accounts
+                                </a>
+                            </li>
+                        }
+                    </ul>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- Multi-Currency Switcher Dropdown (USD / LKR) -->
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-warning dropdown-toggle fw-semibold d-flex align-items-center" type="button" id="currencySwitcherDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-coins me-1"></i>
+                                <span>@activeCurrency (@CurrencyService.GetCurrencySymbol(activeCurrency))</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="currencySwitcherDropdown">
+                                <li class="dropdown-header text-uppercase small fw-bold">Select Store Currency</li>
+                                <li>
+                                    <form asp-controller="Currency" asp-action="SetCurrency" method="post" class="m-0 p-0">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="returnUrl" value="@returnUrl" />
+                                        <input type="hidden" name="currency" value="USD" />
+                                        <button type="submit" class="dropdown-item d-flex justify-content-between align-items-center py-2 @(activeCurrency == "USD" ? "active fw-bold" : "")">
+                                            <span><i class="fas fa-dollar-sign text-success me-2"></i>USD ($)</span>
+                                            <span class="badge bg-secondary ms-2">US Dollar</span>
+                                        </button>
+                                    </form>
+                                </li>
+                                <li>
+                                    <form asp-controller="Currency" asp-action="SetCurrency" method="post" class="m-0 p-0">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="returnUrl" value="@returnUrl" />
+                                        <input type="hidden" name="currency" value="LKR" />
+                                        <button type="submit" class="dropdown-item d-flex justify-content-between align-items-center py-2 @(activeCurrency == "LKR" ? "active fw-bold" : "")">
+                                            <span><i class="fas fa-rupee-sign text-primary me-2"></i>LKR (Rs.)</span>
+                                            <span class="badge bg-secondary ms-2">Sri Lankan Rupee</span>
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <a asp-controller="Checkout" asp-action="Index" class="btn btn-outline-light btn-sm px-3">
+                            <i class="fas fa-cash-register me-1"></i> Checkout
+                        </a>
+                        <button class="btn btn-warning btn-sm px-3 fw-bold position-relative" data-bs-toggle="offcanvas" data-bs-target="#cartOffcanvas">
+                            <i class="fas fa-shopping-cart me-1"></i> Cart
+                            <span id="navCartCountBadge" class="badge rounded-pill bg-danger ms-1">0</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- 3. MAIN CONTENT BODY (Dynamic Views Render Here) -->
+    <main role="main" class="main-content pb-4">
+        @RenderBody()
+    </main>
+
+    <!-- 4. SITE FOOTER -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <img src="~/images/logo.png" alt="The Turnout Model Railway" class="rounded-circle bg-white p-1" style="height: 44px; width: 44px; object-fit: contain;" />
+                        <h5 class="fw-bold mb-0 text-white">The Turnout Model Railway</h5>
+                    </div>
+                    <p class="small text-secondary">
+                        Dedicated to model railroading, architectural dioramas, and precision scale miniatures. Handcrafted by master artisans with museum-grade accuracy in Sri Lanka.
+                    </p>
+                    <div class="d-flex gap-3 text-secondary mt-3 fs-5">
+                        <a href="https://wa.me/94703856824" target="_blank" class="text-success" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+                        <a href="#" class="text-secondary"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="text-secondary"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-secondary"><i class="fab fa-youtube"></i></a>
+                    </div>
+                </div>
+
+                <div class="col-lg-2 col-md-6">
+                    <h5>Quick Links</h5>
+                    <ul>
+                        <li><a asp-controller="Home" asp-action="Index">Store Catalog</a></li>
+                        <li><a href="#product-grid">Locomotives (HO)</a></li>
+                        <li><a href="#product-grid">Buildings &amp; Scenery</a></li>
+                        <li><a asp-controller="Checkout" asp-action="Index">Cart &amp; Checkout</a></li>
+                    </ul>
+                </div>
+
+                <div class="col-lg-3 col-md-6">
+                    <h5>Customer Care</h5>
+                    <ul>
+                        <li><a href="#">Shipping &amp; Fragile Handling</a></li>
+                        <li><a href="#">30-Day Inspection Returns</a></li>
+                        <li><a href="#">Custom Scale Commissions</a></li>
+                        <li><a href="#">Layout Consultation</a></li>
+                    </ul>
+                </div>
+
+                <div class="col-lg-3 col-md-6">
+                    <h5>Visit Our Studio</h5>
+                    <p class="small mb-2"><i class="fas fa-map-marker-alt text-warning me-2"></i>Cemetery Road, 18th Mile Post Junction, Western Province, Sri Lanka</p>
+                    <p class="small mb-2"><i class="fas fa-clock text-warning me-2"></i>Wed - Sat: 10:00 AM - 6:00 PM<br /><span class="text-muted ps-3">(Closed Sun, Mon, Tue)</span></p>
+                    <p class="small mb-1"><i class="fab fa-whatsapp text-success me-2"></i>+94 70 385 6824</p>
+                    <p class="small"><i class="fas fa-envelope text-warning me-2"></i>info@theturnout.lk</p>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+                    <span>&copy; @DateTime.UtcNow.Year The Turnout Store. All rights reserved.</span>
+                    <span>Precision Scale Miniatures, Railway Models &amp; Scenery.</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Cart Drawer Partial (Available across all pages) -->
+    <partial name="_CartDrawer" />
+
+    <!-- Bootstrap 5 JavaScript Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Render View-Specific Scripts -->
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

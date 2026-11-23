@@ -1,0 +1,185 @@
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    var tokens = Antiforgery.GetAndStoreTokens(Context);
+}
+
+<!-- Hidden CSRF token carrier for AJAX fetch requests -->
+<input type="hidden" id="globalCsrfToken" name="__RequestVerificationToken" value="@tokens.RequestToken" />
+
+<!-- ======================================================== -->
+<!-- OFFCANVAS: SESSION-BACKED SHOPPING CART DRAWER            -->
+<!-- ======================================================== -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="cartOffcanvas" aria-labelledby="cartOffcanvasLabel">
+    <div class="offcanvas-header bg-dark text-white">
+        <h5 class="offcanvas-title" id="cartOffcanvasLabel">
+            <i class="fas fa-shopping-cart me-2 text-warning"></i>Your Miniature Cart
+            <span id="cartCountBadge" class="badge bg-warning text-dark rounded-pill ms-2">0</span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column">
+        <div id="cartItemsContainer" class="flex-grow-1 overflow-auto">
+            <p class="text-muted text-center py-4">Loading your cart...</p>
+        </div>
+        <div class="border-top pt-3 mt-auto">
+            <div class="d-flex justify-content-between fw-bold fs-5 mb-3">
+                <span>Grand Total:</span>
+                <span id="cartTotalPrice" class="text-primary">$0.00</span>
+            </div>
+            <a asp-controller="Checkout" asp-action="Index" class="btn btn-success w-100 py-2 fw-bold shadow-sm">
+                <i class="fas fa-cash-register me-1"></i> Proceed to Checkout
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function getCsrfToken() {
+        const input = document.getElementById("globalCsrfToken");
+        return input ? input.value : "";
+    }
+
+    async function loadCart() {
+        try {
+            const response = await fetch("/Cart/GetCart");
+            if (response.ok) {
+                const data = await response.json();
+                renderCartUI(data.items, data.totalCount, data.grandTotal);
+            }
+        } catch (err) {
+            console.error("Failed to load session cart:", err);
+        }
+    }
+
+    async function handleAddToCart(productId, buttonElement, quantity = 1, openDrawer = true) {
+        if (!productId) return false;
+
+        let originalContent = "";
+        if (buttonElement) {
+            originalContent = buttonElement.innerHTML;
+            buttonElement.disabled = true;
+            buttonElement.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Adding...';
+        }
+
+        try {
+            const response = await fetch(`/Cart/AddToCart?productId=${productId}&quantity=${quantity}`, {
+                method: "POST",
+                headers: {
+                    "RequestVerificationToken": getCsrfToken()
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server returned HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                renderCartUI(data.items, data.totalCount, data.grandTotal);
+                if (openDrawer) {
+                    const cartDrawerEl = document.getElementById("cartOffcanvas");
+                    if (cartDrawerEl && window.bootstrap) {
+                        const cartDrawer = bootstrap.Offcanvas.getOrCreateInstance(cartDrawerEl);
+                        cartDrawer.show();
+                    }
+                }
+                return true;
+            } else {
+                alert(data.message || "Failed to add product to cart.");
+                return false;
+            }
+        } catch (err) {
+            console.error("Error adding item to cart:", err);
+            alert("Could not communicate with the shopping cart server.");
+            return false;
+        } finally {
+            if (buttonElement) {
+                buttonElement.disabled = false;
+                buttonElement.innerHTML = originalContent;
+            }
+        }
+    }
+
+    async function handleUpdateQuantity(productId, quantity) {
+        try {
+            const response = await fetch(`/Cart/UpdateQuantity?productId=${productId}&quantity=${quantity}`, {
+                method: "POST",
+                headers: {
+                    "RequestVerificationToken": getCsrfToken()
+                }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                renderCartUI(data.items, data.totalCount, data.grandTotal);
+            } else {
+                alert(data.message || "Failed to update item quantity.");
+            }
+        } catch (err) {
+            console.error("Error updating cart quantity:", err);
+        }
+    }
+
+    async function handleRemoveFromCart(productId) {
+        try {
+            const response = await fetch(`/Cart/RemoveFromCart?productId=${productId}`, {
+                method: "POST",
+                headers: {
+                    "RequestVerificationToken": getCsrfToken()
+                }
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                renderCartUI(data.items, data.totalCount, data.grandTotal);
+            }
+        } catch (err) {
+            console.error("Error removing item from cart:", err);
+        }
+    }
+
+    function renderCartUI(items, totalCount, grandTotal) {
+        const container = document.getElementById("cartItemsContainer");
+        const badge = document.getElementById("cartCountBadge");
+        const navBadge = document.getElementById("navCartCountBadge");
+        const totalDisplay = document.getElementById("cartTotalPrice");
+
+        if (badge) badge.innerText = totalCount || 0;
+        if (navBadge) navBadge.innerText = totalCount || 0;
+        if (totalDisplay) totalDisplay.innerText = "$" + (grandTotal ? grandTotal.toFixed(2) : "0.00");
+
+        if (!container) return;
+
+        if (!items || items.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center py-4"><i class="fas fa-shopping-bag fa-2x mb-2 d-block"></i>Your cart is currently empty.</p>';
+            return;
+        }
+
+        container.innerHTML = items.map(item => `
+            <div class="card mb-2 border-0 bg-light p-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-semibold small text-dark">${item.name}</div>
+                        <div class="text-muted small">$${item.unitPrice.toFixed(2)} each</div>
+                        <div class="d-flex align-items-center gap-1 mt-1">
+                            <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="handleUpdateQuantity(${item.productId}, ${item.quantity - 1})">-</button>
+                            <span class="small fw-bold px-2">${item.quantity}</span>
+                            <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="handleUpdateQuantity(${item.productId}, ${item.quantity + 1})">+</button>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-bold text-primary">$${item.subtotal.toFixed(2)}</span>
+                        <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="handleRemoveFromCart(${item.productId})" title="Remove item">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join("");
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        loadCart();
+    });
+</script>

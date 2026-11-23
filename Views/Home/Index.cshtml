@@ -1,0 +1,369 @@
+@model IEnumerable<TurnoutStore.Data.Product>
+@inject TurnoutStore.Services.ICurrencyService CurrencyService
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "The Turnout Store - Handcrafted Miniatures & Models";
+    var userCurrency = CurrencyService.GetUserCurrency(Context);
+}
+
+<div class="container py-4">
+    <!-- Hero / Store Header Banner -->
+    <div class="p-4 p-md-5 mb-4 text-white rounded bg-dark shadow-sm" style="background: linear-gradient(135deg, #1e272e, #2d3436);">
+        <div class="row align-items-center">
+            <div class="col-md-8 px-0 pe-md-4">
+                <span class="badge bg-warning text-dark mb-2 px-3 py-2 fw-bold text-uppercase">Precision Crafts</span>
+                <h1 class="display-5 fw-bold">The Turnout Model Railway</h1>
+                <p class="lead my-3 text-light">Discover premium, museum-grade miniature locomotives, scenic buildings, and scale landscapes built by passionate artisans.</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="#product-grid" class="btn btn-primary btn-lg px-4">Browse Catalog</a>
+                    <a asp-controller="Ticket" asp-action="Book" class="btn btn-warning btn-lg px-4 fw-bold">
+                        <i class="fas fa-ticket-alt me-1"></i> Book Exhibition Tour
+                    </a>
+                </div>
+            </div>
+            <div class="col-md-4 text-center d-none d-md-block">
+                <img src="~/images/logo.png" alt="The Turnout Model Railway Logo" class="img-fluid rounded-circle p-2 bg-white shadow-lg" style="max-height: 180px; width: auto; object-fit: contain;" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 bg-light p-3 rounded shadow-sm border">
+        <div class="d-flex align-items-center gap-2">
+            <span class="fw-bold text-secondary"><i class="fas fa-filter me-1"></i>Filter Scale:</span>
+            <button class="btn btn-sm btn-dark filter-btn active" data-filter="all">All</button>
+            <button class="btn btn-sm btn-outline-secondary filter-btn" data-filter="1:87 (HO)">HO (1:87)</button>
+            <button class="btn btn-sm btn-outline-secondary filter-btn" data-filter="Universal">Universal</button>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Search miniatures..." style="width: 220px;" />
+            <button class="btn btn-outline-primary btn-sm position-relative" data-bs-toggle="offcanvas" data-bs-target="#cartOffcanvas">
+                <i class="fas fa-shopping-cart"></i> Cart
+                <span id="cartCountBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">0</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Dynamic Product Grid -->
+    <div id="product-grid" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        @if (Model != null && Model.Any())
+        {
+            @foreach (var product in Model)
+            {
+                <div class="col product-card-wrapper" data-scale="@(product.Scale ?? "Other")" data-name="@product.Name.ToLower()" data-sku="@product.Sku.ToLower()">
+                    <div class="card h-100 shadow-sm border-0 product-card">
+                        <!-- Product Badges & Image Preview -->
+                        <div class="position-relative bg-light rounded-top d-flex justify-content-center align-items-center overflow-hidden" style="height: 220px; background: radial-gradient(circle, #f1f2f6 0%, #dfe4ea 100%);">
+                            
+                            <!-- Scale / Unique Badges -->
+                            <div class="position-absolute top-0 start-0 m-2 d-flex flex-column gap-1">
+                                @if (!string.IsNullOrEmpty(product.Scale))
+                                {
+                                    <span class="badge bg-dark bg-opacity-75"><i class="fas fa-ruler me-1"></i>@product.Scale</span>
+                                }
+                                @if (product.IsUnique)
+                                {
+                                    <span class="badge bg-danger"><i class="fas fa-star me-1"></i>One-of-a-Kind</span>
+                                }
+                            </div>
+
+                            <!-- Stock Indicator Badge -->
+                            <div class="position-absolute top-0 end-0 m-2">
+                                @if (product.StockQuantity > 5)
+                                {
+                                    <span class="badge bg-success">In Stock (@product.StockQuantity)</span>
+                                }
+                                else if (product.StockQuantity > 0)
+                                {
+                                    <span class="badge bg-warning text-dark">Only @product.StockQuantity left</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Sold Out</span>
+                                }
+                            </div>
+
+                            <!-- Product Thumbnail / Image -->
+                            <div class="text-center p-3 d-flex align-items-center justify-content-center" style="height: 100%;">
+                                <a asp-controller="Home" asp-action="Details" asp-route-id="@product.ProductId" class="d-flex align-items-center justify-content-center w-100 h-100 text-decoration-none" title="View details for @product.Name">
+                                    @if (!string.IsNullOrEmpty(product.PrimaryImageUrl))
+                                    {
+                                        <img src="@product.PrimaryImageUrl" alt="@product.Name" class="img-fluid" style="max-height: 170px; max-width: 100%; object-fit: contain;" />
+                                    }
+                                    else if (product.Sku.Contains("LOCO"))
+                                    {
+                                        <i class="fas fa-train fa-4x text-secondary opacity-75"></i>
+                                    }
+                                    else if (product.Sku.Contains("BLD") || product.Sku.Contains("STR"))
+                                    {
+                                        <i class="fas fa-building fa-4x text-secondary opacity-75"></i>
+                                    }
+                                    else if (product.Sku.Contains("SCN"))
+                                    {
+                                        <i class="fas fa-tree fa-4x text-success opacity-75"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-cubes fa-4x text-primary opacity-75"></i>
+                                    }
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Card Body -->
+                        <div class="card-body d-flex flex-column">
+                            <div class="text-muted small mb-1">SKU: <span class="fw-semibold">@product.Sku</span></div>
+                            <h5 class="card-title mb-2">
+                                <a asp-controller="Home" asp-action="Details" asp-route-id="@product.ProductId" class="text-dark text-decoration-none fw-bold" title="View details for @product.Name">
+                                    @product.Name
+                                </a>
+                            </h5>
+                            
+                            <p class="card-text text-secondary small flex-grow-1" style="min-height: 48px;">
+                                @(product.Description ?? "Authentic, handcrafted miniature model built with precision materials.")
+                            </p>
+
+                            <!-- Specifications Metadata -->
+                            <ul class="list-unstyled small text-muted border-top border-bottom py-2 my-2 bg-light px-2 rounded">
+                                @if (!string.IsNullOrEmpty(product.DimensionsMm))
+                                {
+                                    <li><i class="fas fa-arrows-alt me-1 text-primary"></i><strong>Dimensions:</strong> @product.DimensionsMm mm</li>
+                                }
+                                @if (product.WeightGrams.HasValue)
+                                {
+                                    <li><i class="fas fa-weight-hanging me-1 text-primary"></i><strong>Weight:</strong> @product.WeightGrams.Value.ToString("F1") g</li>
+                                }
+                            </ul>
+
+                            <!-- Price and Add to Cart -->
+                            <div class="d-flex justify-content-between align-items-center mt-3 pt-2">
+                                <div>
+                                    <span class="text-muted small d-block">Price</span>
+                                    @{
+                                        var convertedCatalogPrice = CurrencyService.ConvertPrice(product.Price, "USD", userCurrency);
+                                    }
+                                    <span class="fs-4 fw-bold text-primary">@CurrencyService.FormatPrice(convertedCatalogPrice, userCurrency)</span>
+                                    @if (userCurrency != "USD")
+                                    {
+                                        <small class="text-muted d-block" style="font-size: 0.72rem;">($@product.Price.ToString("F2") USD)</small>
+                                    }
+                                </div>
+
+                                <button class="btn btn-primary add-to-cart-btn @(product.StockQuantity <= 0 ? "disabled" : "")" 
+                                        data-product-id="@product.ProductId"
+                                        onclick="handleAddToCart(@product.ProductId, this)">
+                                    <i class="fas fa-cart-plus me-1"></i> Add to Cart
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">No active miniature products found.</h4>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL: EXHIBITION VISIT BOOKING FORM                      -->
+<!-- ======================================================== -->
+<div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="bookingModalLabel"><i class="fas fa-calendar-check me-2 text-warning"></i>Book Exhibition Visit</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="bookingForm">
+                <div class="modal-body">
+                    <div id="bookingAlert" class="alert d-none"></div>
+
+                    <!-- Studio Location & Hours Banner -->
+                    <div class="alert alert-light border small py-2 px-3 mb-3">
+                        <div class="fw-bold text-dark"><i class="fas fa-map-marker-alt text-warning me-1"></i> The Turnout Model Railway Studio</div>
+                        <div class="text-secondary">Cemetery Road, 18th Mile Post Junction, Western Province, Sri Lanka</div>
+                        <div class="text-dark mt-1"><i class="fas fa-clock text-warning me-1"></i> Open: <strong>Wed to Sat, 10:00 AM - 6:00 PM</strong> <span class="text-danger small">(Closed Sun, Mon, Tue)</span></div>
+                        <div class="text-success mt-1"><i class="fab fa-whatsapp me-1"></i> WhatsApp Inquiries: <strong>+94 70 385 6824</strong></div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Full Name *</label>
+                            <input type="text" class="form-control form-control-sm" id="bookingName" required placeholder="John Doe" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Phone / WhatsApp *</label>
+                            <input type="tel" class="form-control form-control-sm" id="bookingPhone" required placeholder="+94 70 385 6824" />
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Visit Date *</label>
+                            <input type="date" class="form-control form-control-sm" id="bookingDate" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Time Slot *</label>
+                            <select class="form-select form-select-sm" id="bookingTime" required>
+                                <option value="10:00 AM">10:00 AM (Morning Session)</option>
+                                <option value="01:00 PM">01:00 PM (Afternoon Session)</option>
+                                <option value="04:00 PM">04:00 PM (Twilight Run)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Adults ($15.00)</label>
+                            <input type="number" class="form-control form-control-sm" id="bookingAdults" min="1" max="20" value="1" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Kids ($8.00)</label>
+                            <input type="number" class="form-control form-control-sm" id="bookingKids" min="0" max="20" value="0" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Tour Type</label>
+                        <select class="form-select form-select-sm" id="bookingType">
+                            <option value="Standard Exhibition">Standard Miniature Layout Exhibition</option>
+                            <option value="VIP Workshop Tour">VIP Workshop &amp; Artisan Tour</option>
+                            <option value="Model Train Driving Experience">Model Train Controller Experience</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Special Requests / Notes</label>
+                        <textarea class="form-control form-control-sm" id="bookingNotes" rows="2" placeholder="Dietary, accessibility, or layout preferences..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" id="bookingSubmitBtn" class="btn btn-warning btn-sm fw-bold">
+                        <i class="fas fa-check-circle me-1"></i> Confirm &amp; Reserve
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+<style>
+    .product-card {
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.12) !important;
+    }
+</style>
+
+<!-- ======================================================== -->
+<!-- CLIENT-SIDE JAVASCRIPT: BOOKING & FILTER INTEGRATION      -->
+<!-- ======================================================== -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Initialize visit date input to tomorrow by default
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const dateInput = document.getElementById("bookingDate");
+        if (dateInput) {
+            dateInput.value = tomorrow.toISOString().split("T")[0];
+        }
+
+        // 1. Booking Form Submission (Database Saving via AJAX with CSRF Token)
+        const bookingForm = document.getElementById("bookingForm");
+        if (bookingForm) {
+            bookingForm.addEventListener("submit", async function (e) {
+                e.preventDefault();
+
+                const submitBtn = document.getElementById("bookingSubmitBtn");
+                const alertBox = document.getElementById("bookingAlert");
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Reserving...';
+
+                const bookingPayload = {
+                    name: document.getElementById("bookingName").value,
+                    phone: document.getElementById("bookingPhone").value,
+                    visitDate: document.getElementById("bookingDate").value,
+                    time: document.getElementById("bookingTime").value,
+                    adults: parseInt(document.getElementById("bookingAdults").value) || 1,
+                    kids: parseInt(document.getElementById("bookingKids").value) || 0,
+                    type: document.getElementById("bookingType").value,
+                    notes: document.getElementById("bookingNotes").value
+                };
+
+                try {
+                    const response = await fetch("/Home/SubmitBooking", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "RequestVerificationToken": typeof getCsrfToken === "function" ? getCsrfToken() : ""
+                        },
+                        body: JSON.stringify(bookingPayload)
+                    });
+
+                    const result = await response.json();
+
+                    alertBox.classList.remove("d-none", "alert-danger", "alert-success");
+
+                    if (result.success) {
+                        alertBox.classList.add("alert-success");
+                        alertBox.innerHTML = `<i class="fas fa-check-circle me-1"></i> ${result.message}`;
+                        bookingForm.reset();
+                    } else {
+                        alertBox.classList.add("alert-danger");
+                        alertBox.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i> ${result.message || "Booking submission failed."}`;
+                    }
+                } catch (err) {
+                    alertBox.classList.remove("d-none");
+                    alertBox.classList.add("alert-danger");
+                    alertBox.innerHTML = `<i class="fas fa-times-circle me-1"></i> Network error occurred while submitting booking.`;
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-check-circle me-1"></i> Confirm &amp; Reserve';
+                }
+            });
+        }
+
+        // 2. Search & Filter
+        const searchInput = document.getElementById("searchInput");
+        if (searchInput) {
+            searchInput.addEventListener("input", function () {
+                const query = this.value.toLowerCase().trim();
+                document.querySelectorAll(".product-card-wrapper").forEach(card => {
+                    const name = card.getAttribute("data-name");
+                    const sku = card.getAttribute("data-sku");
+                    const match = name.includes(query) || sku.includes(query);
+                    card.style.display = match ? "block" : "none";
+                });
+            });
+        }
+
+        document.querySelectorAll(".filter-btn").forEach(btn => {
+            btn.addEventListener("click", function () {
+                document.querySelectorAll(".filter-btn").forEach(b => {
+                    b.classList.remove("btn-dark", "active");
+                    b.classList.add("btn-outline-secondary");
+                });
+                this.classList.remove("btn-outline-secondary");
+                this.classList.add("btn-dark", "active");
+
+                const scaleFilter = this.getAttribute("data-filter");
+                document.querySelectorAll(".product-card-wrapper").forEach(card => {
+                    const cardScale = card.getAttribute("data-scale");
+                    card.style.display = (scaleFilter === "all" || cardScale === scaleFilter) ? "block" : "none";
+                });
+            });
+        });
+    });
+</script>

@@ -1,0 +1,90 @@
+@model TurnoutStore.Models.RegisterViewModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Customer Registration - The Turnout Store";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-6">
+            <div class="card shadow-sm border-0 rounded-3 p-4 p-md-5">
+                <div class="text-center mb-4">
+                    <span class="rounded-circle bg-warning bg-opacity-10 text-warning d-inline-flex justify-content-center align-items-center mb-3" style="width: 70px; height: 70px;">
+                        <i class="fas fa-user-plus fa-2x"></i>
+                    </span>
+                    <h3 class="fw-bold text-dark">Create Your Account</h3>
+                    <p class="text-muted small">Join The Turnout Store to track orders, save shipping addresses, and book workshop tours.</p>
+                </div>
+
+                <form asp-controller="Account" asp-action="Register" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small" role="alert"></div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-sm-6">
+                            <label asp-for="FirstName" class="form-label fw-semibold small"></label>
+                            <input asp-for="FirstName" class="form-control" placeholder="John" required />
+                            <span asp-validation-for="FirstName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-sm-6">
+                            <label asp-for="LastName" class="form-label fw-semibold small"></label>
+                            <input asp-for="LastName" class="form-control" placeholder="Doe" required />
+                            <span asp-validation-for="LastName" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label fw-semibold small"></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fas fa-envelope text-muted"></i></span>
+                            <input asp-for="Email" type="email" class="form-control" placeholder="john.doe@example.com" required />
+                        </div>
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="PhoneNumber" class="form-label fw-semibold small"></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fas fa-phone text-muted"></i></span>
+                            <input asp-for="PhoneNumber" type="tel" class="form-control" placeholder="+1 (555) 019-2834" />
+                        </div>
+                        <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label fw-semibold small"></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fas fa-lock text-muted"></i></span>
+                            <input asp-for="Password" type="password" class="form-control" placeholder="Minimum 6 characters" required />
+                        </div>
+                        <span asp-validation-for="Password" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="ConfirmPassword" class="form-label fw-semibold small"></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fas fa-shield-alt text-muted"></i></span>
+                            <input asp-for="ConfirmPassword" type="password" class="form-control" placeholder="Confirm your password" required />
+                        </div>
+                        <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning w-100 py-2 fw-bold shadow-sm mb-3">
+                        <i class="fas fa-check-circle me-1"></i> Create Customer Account
+                    </button>
+
+                    <div class="text-center small text-muted">
+                        Already have an account? <a asp-controller="Account" asp-action="Login" class="fw-semibold text-primary">Sign in here</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/4.0.0/jquery.validate.unobtrusive.min.js"></script>
+}

@@ -1,0 +1,314 @@
+@model TurnoutStore.Models.TicketBookingViewModel
+@inject TurnoutStore.Services.ICurrencyService CurrencyService
+@{
+    ViewData["Title"] = "Book Exhibition Tour - The Turnout Store";
+    var activeCurrency = CurrencyService.GetUserCurrency(Context);
+    var usdToLkrRate = CurrencyService.GetExchangeRate("USD", "LKR");
+    var lkrToUsdRate = CurrencyService.GetExchangeRate("LKR", "USD");
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Header Banner -->
+            <div class="text-center mb-5">
+                <img src="~/images/logo.png" alt="The Turnout Model Railway" class="rounded-circle bg-white shadow-sm p-2 mb-3 border" style="width: 90px; height: 90px; object-fit: contain;" />
+                <div>
+                    <span class="badge bg-warning text-dark px-3 py-2 text-uppercase fw-bold mb-2">
+                        <i class="fas fa-ticket-alt me-1"></i> Studio Admission &amp; Tours
+                    </span>
+                </div>
+                <h1 class="fw-bold display-6">Exhibition &amp; Studio Tour Booking</h1>
+                <p class="text-muted lead mx-auto" style="max-width: 700px;">
+                    Experience our master craftsmanship firsthand. Tour our operational HO-scale railway layouts, diorama construction workshops, and artisan display rooms.
+                </p>
+            </div>
+
+            <div class="row g-4">
+                <!-- Left: Booking Form -->
+                <div class="col-lg-7">
+                    <div class="card shadow-sm border-0 rounded-3">
+                        <div class="card-header bg-dark text-white py-3">
+                            <h5 class="mb-0 fw-bold"><i class="fas fa-clipboard-list me-2 text-warning"></i>Visitor &amp; Reservation Details</h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <form asp-action="Book" method="post" id="ticketBookingForm">
+                                @Html.AntiForgeryToken()
+                                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                                <!-- 1. Category Switcher (Local vs Foreign) -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold d-block text-secondary">1. Select Visitor Category</label>
+                                    <div class="row g-3">
+                                        <div class="col-sm-6">
+                                            <input type="radio" class="btn-check" name="IsForeign" id="categoryLocal" value="false" @(!Model.IsForeign ? "checked" : "") autocomplete="off">
+                                            <label class="btn btn-outline-primary w-100 text-start p-3 h-100 rounded-3 border-2" for="categoryLocal">
+                                                <div class="d-flex align-items-center mb-1">
+                                                    <i class="fas fa-id-card fa-lg me-2"></i>
+                                                    <strong class="fs-6">Local Resident</strong>
+                                                </div>
+                                                <small class="d-block text-muted">Sri Lankan Citizens &amp; PR</small>
+                                                <div class="mt-2 text-primary fw-bold small">
+                                                    Adult: Rs. 1,000 | Child: Rs. 500
+                                                </div>
+                                            </label>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <input type="radio" class="btn-check" name="IsForeign" id="categoryForeign" value="true" @(Model.IsForeign ? "checked" : "") autocomplete="off">
+                                            <label class="btn btn-outline-success w-100 text-start p-3 h-100 rounded-3 border-2" for="categoryForeign">
+                                                <div class="d-flex align-items-center mb-1">
+                                                    <i class="fas fa-globe-americas fa-lg me-2"></i>
+                                                    <strong class="fs-6">Foreign Visitor</strong>
+                                                </div>
+                                                <small class="d-block text-muted">International Tourists &amp; Guests</small>
+                                                <div class="mt-2 text-success fw-bold small">
+                                                    Adult: $10.00 | Child: $5.00
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <span asp-validation-for="IsForeign" class="text-danger small"></span>
+                                </div>
+
+                                <hr class="my-4 text-muted" />
+
+                                <!-- 2. Ticket Quantities -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold text-secondary">2. Select Headcount</label>
+                                    <div class="row g-3">
+                                        <div class="col-sm-6">
+                                            <div class="p-3 border rounded-3 bg-light">
+                                                <label asp-for="AdultCount" class="form-label fw-semibold mb-1">Adults (18+ yrs)</label>
+                                                <div class="input-group">
+                                                    <button type="button" class="btn btn-outline-secondary" onclick="stepCount('AdultCount', -1)">-</button>
+                                                    <input asp-for="AdultCount" class="form-control text-center fw-bold fs-5" id="adultCountInput" min="1" max="100" />
+                                                    <button type="button" class="btn btn-outline-secondary" onclick="stepCount('AdultCount', 1)">+</button>
+                                                </div>
+                                                <span asp-validation-for="AdultCount" class="text-danger small"></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="p-3 border rounded-3 bg-light">
+                                                <label asp-for="ChildCount" class="form-label fw-semibold mb-1">Children (5-18 yrs)</label>
+                                                <div class="input-group">
+                                                    <button type="button" class="btn btn-outline-secondary" onclick="stepCount('ChildCount', -1)">-</button>
+                                                    <input asp-for="ChildCount" class="form-control text-center fw-bold fs-5" id="childCountInput" min="0" max="100" />
+                                                    <button type="button" class="btn btn-outline-secondary" onclick="stepCount('ChildCount', 1)">+</button>
+                                                </div>
+                                                <small class="text-muted d-block mt-1">Children under 5 enter free</small>
+                                                <span asp-validation-for="ChildCount" class="text-danger small"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <hr class="my-4 text-muted" />
+
+                                <!-- 3. Date & Schedule -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold text-secondary">3. Schedule Your Visit</label>
+                                    <div class="row g-3">
+                                        <div class="col-sm-6">
+                                            <label asp-for="VisitDate" class="form-label small fw-semibold">Visit Date</label>
+                                            <input asp-for="VisitDate" type="date" class="form-control" id="visitDateInput" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                                            <span asp-validation-for="VisitDate" class="text-danger small"></span>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <label asp-for="TimeSlot" class="form-label small fw-semibold">Time Slot</label>
+                                            <select asp-for="TimeSlot" class="form-select">
+                                                <option value="10:00 AM - 12:00 PM">10:00 AM - 12:00 PM (Morning Slot)</option>
+                                                <option value="12:30 PM - 02:30 PM">12:30 PM - 02:30 PM (Midday Slot)</option>
+                                                <option value="03:00 PM - 05:00 PM">03:00 PM - 05:00 PM (Afternoon Slot)</option>
+                                                <option value="05:00 PM - 06:30 PM">05:00 PM - 06:30 PM (Evening Twilight)</option>
+                                            </select>
+                                            <span asp-validation-for="TimeSlot" class="text-danger small"></span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <hr class="my-4 text-muted" />
+
+                                <!-- 4. Customer Contact Information -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold text-secondary">4. Lead Contact Information</label>
+                                    <div class="row g-3">
+                                        <div class="col-12">
+                                            <label asp-for="CustomerName" class="form-label small fw-semibold">Primary Contact Name *</label>
+                                            <input asp-for="CustomerName" class="form-control" placeholder="e.g. Ruwan Perera or John Doe" />
+                                            <span asp-validation-for="CustomerName" class="text-danger small"></span>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <label asp-for="PhoneNumber" class="form-label small fw-semibold">Phone / WhatsApp Number *</label>
+                                            <input asp-for="PhoneNumber" class="form-control" placeholder="e.g. +94 70 385 6824" />
+                                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <label asp-for="Email" class="form-label small fw-semibold">Email Address (Optional)</label>
+                                            <input asp-for="Email" class="form-control" placeholder="name@example.com" />
+                                            <span asp-validation-for="Email" class="text-danger small"></span>
+                                        </div>
+                                        <div class="col-12">
+                                            <label asp-for="Notes" class="form-label small fw-semibold">Special Requests / Group Inquiries</label>
+                                            <textarea asp-for="Notes" class="form-control" rows="2" placeholder="Accessibility requests, private workshop tour interest, etc."></textarea>
+                                            <span asp-validation-for="Notes" class="text-danger small"></span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-grid mt-4">
+                                    <button type="submit" class="btn btn-warning btn-lg fw-bold py-3 shadow">
+                                        <i class="fas fa-check-circle me-2"></i> Confirm Ticket Reservation
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Dynamic Pricing & Studio Guide Card -->
+                <div class="col-lg-5">
+                    <div class="card shadow-sm border-0 rounded-3 mb-4 sticky-top" style="top: 90px;">
+                        <div class="card-header bg-primary text-white py-3">
+                            <h5 class="mb-0 fw-bold"><i class="fas fa-receipt me-2"></i>Live Pricing Summary</h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Admission Category:</span>
+                                <strong id="summaryCategoryText" class="text-dark">Local Resident</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Adult Tickets (<span id="summaryAdultQty">1</span>):</span>
+                                <span id="summaryAdultPrice" class="fw-semibold">Rs. 1,000.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Child Tickets (<span id="summaryChildQty">0</span>):</span>
+                                <span id="summaryChildPrice" class="fw-semibold">Rs. 0.00</span>
+                            </div>
+
+                            <hr />
+
+                            <!-- Base Ticket Total -->
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted">Base Total:</span>
+                                <span id="summaryBaseTotal" class="fs-5 fw-bold text-dark">Rs. 1,000.00</span>
+                            </div>
+
+                            <!-- Converted Site Currency (if active currency differs from base) -->
+                            <div class="p-3 bg-light rounded-3 border mb-3" id="convertedPriceBox">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="small text-muted d-block">Store Active Currency:</span>
+                                        <strong class="text-uppercase text-secondary">@activeCurrency</strong>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="fs-4 fw-bold text-success" id="summaryConvertedTotal">$3.33</span>
+                                        <small class="d-block text-muted" id="summaryExchangeRateNote">Rate: 1 USD ≈ 300 LKR</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info border-0 py-2 small mb-0">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Payment can be settled in either <strong>USD</strong> or <strong>LKR</strong> at the reception counter or via local bank transfer.
+                            </div>
+                        </div>
+
+                        <!-- Studio Tour Perks -->
+                        <div class="card-footer bg-white border-top p-4">
+                            <h6 class="fw-bold mb-3"><i class="fas fa-sparkles text-warning me-1"></i>Admission Includes:</h6>
+                            <ul class="list-unstyled small mb-0 text-secondary">
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Full access to live HO-scale railway layouts</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Guided demonstration by model railway engineers</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Close-up inspection of handcrafted brass locomotives</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Complimentary Ceylon tea &amp; refreshments</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Exchange rates provided from server CurrencyService
+    const USD_TO_LKR = @usdToLkrRate;
+    const LKR_TO_USD = @lkrToUsdRate;
+    const ACTIVE_CURRENCY = "@activeCurrency";
+
+    function stepCount(fieldName, delta) {
+        const input = document.getElementById(fieldName === 'AdultCount' ? 'adultCountInput' : 'childCountInput');
+        if (!input) return;
+        let val = parseInt(input.value, 10) || 0;
+        val += delta;
+        const min = parseInt(input.min, 10) || 0;
+        const max = parseInt(input.max, 10) || 100;
+        if (val >= min && val <= max) {
+            input.value = val;
+            calculateLivePrice();
+        }
+    }
+
+    function calculateLivePrice() {
+        const isForeign = document.getElementById('categoryForeign').checked;
+        const adultCount = Math.max(1, parseInt(document.getElementById('adultCountInput').value, 10) || 1);
+        const childCount = Math.max(0, parseInt(document.getElementById('childCountInput').value, 10) || 0);
+
+        let adultRate, childRate, baseCurrency, baseSymbol;
+
+        if (isForeign) {
+            adultRate = 10.00;
+            childRate = 5.00;
+            baseCurrency = "USD";
+            baseSymbol = "$";
+            document.getElementById('summaryCategoryText').innerText = "Foreign Visitor";
+        } else {
+            adultRate = 1000.00;
+            childRate = 500.00;
+            baseCurrency = "LKR";
+            baseSymbol = "Rs. ";
+            document.getElementById('summaryCategoryText').innerText = "Local Resident";
+        }
+
+        const adultTotal = adultCount * adultRate;
+        const childTotal = childCount * childRate;
+        const baseTotal = adultTotal + childTotal;
+
+        // Update Summary Card
+        document.getElementById('summaryAdultQty').innerText = adultCount;
+        document.getElementById('summaryAdultPrice').innerText = baseSymbol + adultTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('summaryChildQty').innerText = childCount;
+        document.getElementById('summaryChildPrice').innerText = baseSymbol + childTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('summaryBaseTotal').innerText = baseSymbol + baseTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        // Convert to active store currency
+        let convertedTotal = baseTotal;
+        let activeSymbol = (ACTIVE_CURRENCY === 'USD') ? '$' : 'Rs. ';
+
+        if (baseCurrency === 'LKR' && ACTIVE_CURRENCY === 'USD') {
+            convertedTotal = baseTotal * LKR_TO_USD;
+        } else if (baseCurrency === 'USD' && ACTIVE_CURRENCY === 'LKR') {
+            convertedTotal = baseTotal * USD_TO_LKR;
+        }
+
+        document.getElementById('summaryConvertedTotal').innerText = activeSymbol + convertedTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        const rateNote = document.getElementById('summaryExchangeRateNote');
+        if (baseCurrency === ACTIVE_CURRENCY) {
+            rateNote.innerText = "Base currency matches store currency";
+        } else {
+            rateNote.innerText = "1 USD ≈ " + USD_TO_LKR.toFixed(0) + " LKR";
+        }
+    }
+
+    // Attach listeners
+    document.getElementById('categoryLocal').addEventListener('change', calculateLivePrice);
+    document.getElementById('categoryForeign').addEventListener('change', calculateLivePrice);
+    document.getElementById('adultCountInput').addEventListener('input', calculateLivePrice);
+    document.getElementById('childCountInput').addEventListener('input', calculateLivePrice);
+
+    // Initial calculation on load
+    document.addEventListener('DOMContentLoaded', calculateLivePrice);
+</script>
+}

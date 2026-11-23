@@ -1,0 +1,198 @@
+@model TurnoutStore.Models.CheckoutViewModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Checkout - The Turnout Store";
+}
+
+<div class="container py-4">
+    <div class="mb-4">
+        <a asp-controller="Home" asp-action="Index" class="text-decoration-none text-muted small">
+            <i class="fas fa-arrow-left me-1"></i> Back to Catalog
+        </a>
+        <h2 class="fw-bold mt-2"><i class="fas fa-cash-register text-primary me-2"></i>Checkout</h2>
+        <p class="text-secondary">Please enter your shipping and contact information to finalize your miniature order.</p>
+    </div>
+
+    <div class="row g-5">
+        <!-- LEFT: Customer & Shipping Details Form -->
+        <div class="col-md-7 col-lg-8">
+            <div class="card shadow-sm border-0 p-4">
+                <h4 class="mb-3 fw-bold text-dark"><i class="fas fa-truck text-secondary me-2"></i>Shipping Details</h4>
+
+                <form asp-controller="Checkout" asp-action="PlaceOrder" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3" role="alert"></div>
+
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label asp-for="FirstName" class="form-label fw-semibold small"></label>
+                            <input asp-for="FirstName" class="form-control" placeholder="John" />
+                            <span asp-validation-for="FirstName" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-sm-6">
+                            <label asp-for="LastName" class="form-label fw-semibold small"></label>
+                            <input asp-for="LastName" class="form-control" placeholder="Doe" />
+                            <span asp-validation-for="LastName" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Email" class="form-label fw-semibold small"></label>
+                            <input asp-for="Email" type="email" class="form-control" placeholder="john.doe@example.com" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="PhoneNumber" class="form-label fw-semibold small"></label>
+                            <input asp-for="PhoneNumber" type="tel" class="form-control" placeholder="+94 70 385 6824" />
+                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="ShippingAddress" class="form-label fw-semibold small"></label>
+                            <textarea asp-for="ShippingAddress" class="form-control" rows="3" placeholder="123 Railway Avenue, Suite 400, Negombo, Sri Lanka"></textarea>
+                            <span asp-validation-for="ShippingAddress" class="text-danger small"></span>
+                        </div>
+
+                        @if (User.Identity != null && User.Identity.IsAuthenticated)
+                        {
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input asp-for="UpdateDefaultAddress" class="form-check-input" type="checkbox" id="updateAddressCheck" />
+                                    <label class="form-check-label small text-muted" for="updateAddressCheck">
+                                        Save as my default shipping address for future orders
+                                    </label>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- BANK TRANSFER & PAYMENT SLIP SECTION -->
+                    <div class="mb-4">
+                        <h4 class="mb-3 fw-bold text-dark"><i class="fas fa-university text-primary me-2"></i>Payment Method: Bank Transfer</h4>
+                        <input type="hidden" asp-for="PaymentMethod" value="Bank Transfer" />
+
+                        <!-- Active Store Bank Accounts -->
+                        <div class="card bg-light border-0 rounded-3 mb-3 p-3">
+                            <h6 class="fw-bold text-secondary mb-2">
+                                <i class="fas fa-building-columns me-1 text-primary"></i>Store Receiving Bank Accounts:
+                            </h6>
+                            <p class="small text-muted mb-3">Please deposit or transfer the order total to any of our official store bank accounts below:</p>
+
+                            @if (Model.ActiveBankAccounts != null && Model.ActiveBankAccounts.Any())
+                            {
+                                <div class="row g-2">
+                                    @foreach (var acc in Model.ActiveBankAccounts)
+                                    {
+                                        <div class="col-sm-6">
+                                            <div class="p-3 bg-white border rounded-3 shadow-sm h-100">
+                                                <div class="fw-bold text-primary mb-1">
+                                                    <i class="fas fa-landmark me-1"></i>@acc.BankName
+                                                </div>
+                                                <div class="small"><strong>Account Name:</strong> @acc.AccountName</div>
+                                                <div class="small text-dark font-monospace my-1">
+                                                    <strong>Account No:</strong> <span class="bg-light px-2 py-1 border rounded fw-bold text-dark">@acc.AccountNumber</span>
+                                                </div>
+                                                <div class="small text-muted"><strong>Branch:</strong> @acc.Branch</div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-info py-2 small mb-0">
+                                    <strong>Commercial Bank of Ceylon</strong> | Acc: 8009234512 | The Turnout Model Railway | Negombo Branch
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Slip Upload Field -->
+                        <div class="p-3 border rounded-3 bg-white shadow-sm">
+                            <label class="form-label fw-bold text-dark d-block mb-1">
+                                <i class="fas fa-file-upload text-warning me-1"></i>Upload Deposit / Transfer Slip *
+                            </label>
+                            <small class="text-muted d-block mb-2">
+                                Attach a clear photo, screenshot, or PDF of your payment receipt (Maximum file size: <strong>4MB</strong>; Accepted: JPG, JPEG, PNG, PDF).
+                            </small>
+
+                            <input type="file" 
+                                   name="paymentSlip" 
+                                   id="paymentSlipInput" 
+                                   class="form-control" 
+                                   accept=".jpg,.jpeg,.png,.pdf" 
+                                   required />
+
+                            <span asp-validation-for="PaymentSlip" class="text-danger small mt-1 d-block"></span>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="form-check mb-3">
+                        <input type="checkbox" class="form-check-input" id="termsCheck" required checked>
+                        <label class="form-check-label small text-muted" for="termsCheck">
+                            I verify that I have transferred the exact order amount and attached the genuine transaction receipt.
+                        </label>
+                    </div>
+
+                    <button class="w-100 btn btn-success btn-lg fw-bold py-3 shadow-sm" type="submit">
+                        <i class="fas fa-check-circle me-2"></i> Submit Order with Bank Slip ($@Model.GrandTotal.ToString("F2"))
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- RIGHT: Cart Summary -->
+        <div class="col-md-5 col-lg-4">
+            <div class="card shadow-sm border-0 p-3 bg-light sticky-top" style="top: 20px;">
+                <h4 class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="text-primary fw-bold"><i class="fas fa-shopping-bag me-2"></i>Order Summary</span>
+                    <span class="badge bg-primary rounded-pill">@Model.CartItems.Sum(i => i.Quantity)</span>
+                </h4>
+
+                <ul class="list-group mb-3 shadow-sm">
+                    @foreach (var item in Model.CartItems)
+                    {
+                        <li class="list-group-item d-flex justify-content-between lh-sm p-3">
+                            <div>
+                                <h6 class="my-0 fw-bold text-dark">@item.Name</h6>
+                                <small class="text-muted d-block">SKU: @item.Sku</small>
+                                @if (!string.IsNullOrEmpty(item.Scale))
+                                {
+                                    <small class="badge bg-secondary">@item.Scale</small>
+                                }
+                                <small class="text-muted">Qty: @item.Quantity &times; $@item.UnitPrice.ToString("F2")</small>
+                            </div>
+                            <span class="text-dark fw-bold align-self-center">$@item.Subtotal.ToString("F2")</span>
+                        </li>
+                    }
+
+                    <li class="list-group-item d-flex justify-content-between bg-white p-3">
+                        <div class="text-success">
+                            <h6 class="my-0">Standard Insured Shipping</h6>
+                            <small>Fragile miniature packaging</small>
+                        </div>
+                        <span class="text-success fw-bold">FREE</span>
+                    </li>
+
+                    <li class="list-group-item d-flex justify-content-between p-3 bg-white border-top">
+                        <span class="fs-5 fw-bold text-dark">Grand Total</span>
+                        <strong class="fs-5 fw-bold text-primary">$@Model.GrandTotal.ToString("F2")</strong>
+                    </li>
+                </ul>
+
+                <div class="p-2 text-center text-muted small">
+                    <i class="fas fa-shield-alt text-success me-1"></i> 256-bit SSL Encrypted Transaction
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

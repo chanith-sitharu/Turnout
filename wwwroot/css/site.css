@@ -1,0 +1,276 @@
+/* ========================================================
+   THE TURNOUT STORE - COMPREHENSIVE STYLESHEET (site.css)
+   ======================================================== */
+
+:root {
+    --primary: #1e3a8a;
+    --primary-hover: #172554;
+    --accent: #d97706;
+    --accent-hover: #b45309;
+    --dark-bg: #0f172a;
+    --dark-panel: #1e293b;
+    --light-bg: #f8fafc;
+    --border-color: #e2e8f0;
+    --text-primary: #0f172a;
+    --text-muted: #64748b;
+    --success: #16a34a;
+    --danger: #dc2626;
+    --warning: #f59e0b;
+    --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+}
+
+/* Global Reset & Typography */
+html, body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--light-bg);
+    color: var(--text-primary);
+    font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main.main-content {
+    flex: 1 0 auto;
+}
+
+a {
+    color: var(--primary);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+a:hover {
+    color: var(--primary-hover);
+}
+
+/* --------------------------------------------------------
+   1. TOP NOTIFICATION BAR
+   -------------------------------------------------------- */
+.top-bar {
+    background-color: #0b1120;
+    color: #94a3b8;
+    font-size: 0.825rem;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.top-bar .announcement {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+}
+
+.top-bar .announcement i {
+    color: var(--accent);
+}
+
+.top-bar-links a {
+    color: #cbd5e1;
+    margin-left: 15px;
+    font-size: 0.8rem;
+}
+
+.top-bar-links a:hover {
+    color: #ffffff;
+}
+
+/* --------------------------------------------------------
+   2. MAIN NAVBAR & HEADER
+   -------------------------------------------------------- */
+.navbar-custom {
+    background-color: var(--dark-bg);
+    border-bottom: 2px solid var(--accent);
+    padding: 12px 0;
+    box-shadow: var(--shadow-md);
+}
+
+.navbar-brand {
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: #ffffff !important;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.navbar-brand i {
+    color: var(--accent);
+}
+
+.navbar-nav .nav-link {
+    color: #cbd5e1 !important;
+    font-weight: 600;
+    padding: 8px 16px !important;
+    border-radius: 6px;
+    transition: var(--transition);
+}
+
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-link.active {
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.nav-admin-link {
+    color: #fde047 !important;
+}
+
+.nav-admin-link:hover {
+    background-color: rgba(253, 224, 71, 0.15) !important;
+}
+
+/* --------------------------------------------------------
+   3. PRODUCT CARDS & GRID
+   -------------------------------------------------------- */
+.product-card {
+    border-radius: 12px;
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+}
+
+.product-card:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-lg);
+    border-color: #cbd5e1;
+}
+
+.product-thumb-container {
+    height: 220px;
+    background: radial-gradient(circle, #f8fafc 0%, #e2e8f0 100%);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.scale-badge {
+    background: rgba(15, 23, 42, 0.85);
+    color: #ffffff;
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    border-radius: 6px;
+    backdrop-filter: blur(4px);
+    font-weight: 600;
+}
+
+.unique-badge {
+    background: #dc2626;
+    color: #ffffff;
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.stock-badge {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+/* --------------------------------------------------------
+   4. BUTTONS & UI CONTROLS
+   -------------------------------------------------------- */
+.btn-primary-custom {
+    background-color: var(--primary);
+    color: #ffffff;
+    border: none;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 8px;
+    transition: var(--transition);
+}
+
+.btn-primary-custom:hover {
+    background-color: var(--primary-hover);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
+}
+
+.btn-accent-custom {
+    background-color: var(--accent);
+    color: #ffffff;
+    border: none;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 8px;
+    transition: var(--transition);
+}
+
+.btn-accent-custom:hover {
+    background-color: var(--accent-hover);
+    color: #ffffff;
+}
+
+/* --------------------------------------------------------
+   5. FOOTER STYLING
+   -------------------------------------------------------- */
+.site-footer {
+    background-color: var(--dark-bg);
+    color: #94a3b8;
+    padding-top: 50px;
+    padding-bottom: 25px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.site-footer h5 {
+    color: #ffffff;
+    font-weight: 700;
+    margin-bottom: 18px;
+    font-size: 1.05rem;
+}
+
+.site-footer ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.site-footer ul li {
+    margin-bottom: 10px;
+}
+
+.site-footer ul li a {
+    color: #94a3b8;
+}
+
+.site-footer ul li a:hover {
+    color: #ffffff;
+    padding-left: 4px;
+}
+
+.footer-bottom {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 0.8rem;
+    text-align: center;
+    color: #64748b;
+}
+
+/* --------------------------------------------------------
+   6. RESPONSIVE UTILITIES
+   -------------------------------------------------------- */
+@media (max-width: 768px) {
+    .top-bar {
+        display: none;
+    }
+    .product-thumb-container {
+        height: 180px;
+    }
+}

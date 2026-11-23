@@ -1,0 +1,366 @@
+@model TurnoutStore.Data.Product
+@inject TurnoutStore.Services.ICurrencyService CurrencyService
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = $"{Model.Name} - The Turnout Store";
+    var images = Model.Images;
+    var primaryImage = Model.PrimaryImageUrl;
+    var isInStock = Model.StockQuantity > 0;
+    var userCurrency = CurrencyService.GetUserCurrency(Context);
+    var convertedPrice = CurrencyService.ConvertPrice(Model.Price, "USD", userCurrency);
+}
+
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" class="text-decoration-none text-muted"><i class="fas fa-home me-1"></i>Catalog</a></li>
+            @if (!string.IsNullOrEmpty(Model.Scale))
+            {
+                <li class="breadcrumb-item"><span class="text-secondary">@Model.Scale</span></li>
+            }
+            <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">@Model.Name</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4 g-lg-5">
+        <!-- ========================================== -->
+        <!-- LEFT COLUMN: INTERACTIVE IMAGE GALLERY     -->
+        <!-- ========================================== -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm p-3 bg-white rounded-3">
+                <!-- Main Image Stage -->
+                <div class="position-relative d-flex align-items-center justify-content-center bg-light rounded-2 overflow-hidden" 
+                     style="height: 420px; border: 1px solid #e9ecef;">
+                    
+                    @if (!string.IsNullOrEmpty(primaryImage))
+                    {
+                        <img id="mainProductImage" 
+                             src="@primaryImage" 
+                             alt="@Model.Name" 
+                             class="img-fluid" 
+                             style="max-height: 400px; max-width: 100%; object-fit: contain; transition: opacity 0.25s ease;" />
+                    }
+                    else if (Model.Sku.Contains("LOCO"))
+                    {
+                        <i id="mainProductIcon" class="fas fa-train fa-6x text-secondary opacity-50"></i>
+                    }
+                    else if (Model.Sku.Contains("BLD") || Model.Sku.Contains("STR"))
+                    {
+                        <i id="mainProductIcon" class="fas fa-building fa-6x text-secondary opacity-50"></i>
+                    }
+                    else if (Model.Sku.Contains("SCN"))
+                    {
+                        <i id="mainProductIcon" class="fas fa-tree fa-6x text-success opacity-50"></i>
+                    }
+                    else
+                    {
+                        <i id="mainProductIcon" class="fas fa-cubes fa-6x text-primary opacity-50"></i>
+                    }
+
+                    <!-- Overlaid Badges -->
+                    <div class="position-absolute top-0 start-0 m-3 d-flex flex-column gap-2">
+                        @if (!string.IsNullOrEmpty(Model.Scale))
+                        {
+                            <span class="badge bg-dark px-3 py-2 fs-6 shadow-sm">
+                                <i class="fas fa-ruler me-1 text-warning"></i>@Model.Scale
+                            </span>
+                        }
+                        @if (Model.IsUnique)
+                        {
+                            <span class="badge bg-danger px-3 py-2 fs-6 shadow-sm">
+                                <i class="fas fa-gem me-1"></i>One-of-a-Kind Piece
+                            </span>
+                        }
+                    </div>
+
+                    @if (!isInStock)
+                    {
+                        <div class="position-absolute bottom-0 end-0 m-3">
+                            <span class="badge bg-secondary px-3 py-2 fs-6 shadow-sm">
+                                <i class="fas fa-ban me-1"></i>Sold Out
+                            </span>
+                        </div>
+                    }
+                </div>
+
+                <!-- Thumbnail Carousel / Strip (Up to 5 images) -->
+                @if (images.Any())
+                {
+                    <div class="mt-3">
+                        <div class="d-flex gap-2 overflow-auto py-1" id="thumbnailGallery">
+                            @for (int i = 0; i < images.Count; i++)
+                            {
+                                var imgUrl = images[i];
+                                var isFirst = i == 0;
+                                <div class="gallery-thumb-wrapper flex-shrink-0" style="cursor: pointer;">
+                                    <img src="@imgUrl" 
+                                         alt="Thumbnail @(i + 1)" 
+                                         class="img-thumbnail gallery-thumb @(isFirst ? "border-primary border-3 active-thumb" : "opacity-75")" 
+                                         style="width: 82px; height: 82px; object-fit: cover; transition: all 0.2s ease;"
+                                         onclick="switchGalleryImage('@imgUrl', this)" />
+                                </div>
+                            }
+                        </div>
+                        <small class="text-muted d-block mt-2">
+                            <i class="fas fa-hand-pointer me-1 text-secondary"></i>Click any thumbnail to preview angle and craftsmanship.
+                        </small>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- RIGHT COLUMN: PRODUCT SPECIFICATIONS & CTA -->
+        <!-- ========================================== -->
+        <div class="col-lg-6 d-flex flex-column">
+            <!-- Header & SKU -->
+            <div class="mb-2">
+                <span class="badge bg-secondary-subtle text-secondary font-monospace px-2 py-1">SKU: @Model.Sku</span>
+            </div>
+            <h1 class="fw-bold text-dark mb-2">@Model.Name</h1>
+
+            <!-- Price & Availability (Multi-Currency Converted) -->
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="fs-2 fw-bold text-primary">
+                    @CurrencyService.FormatPrice(convertedPrice, userCurrency)
+                </div>
+                @if (userCurrency != "USD")
+                {
+                    <span class="text-muted small">
+                        ($@Model.Price.ToString("N2") USD)
+                    </span>
+                }
+                <div>
+                    @if (Model.StockQuantity > 5)
+                    {
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
+                            <i class="fas fa-check-circle me-1"></i>In Stock (@Model.StockQuantity available)
+                        </span>
+                    }
+                    else if (Model.StockQuantity > 0)
+                    {
+                        <span class="badge bg-warning-subtle text-dark border border-warning-subtle px-3 py-2">
+                            <i class="fas fa-exclamation-triangle me-1 text-warning"></i>Low Stock: Only @Model.StockQuantity left!
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2">
+                            <i class="fas fa-times-circle me-1"></i>Currently Out of Stock
+                        </span>
+                    }
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div class="card bg-light border-0 p-3 mb-4 rounded-2">
+                <h6 class="fw-bold text-dark mb-2"><i class="fas fa-align-left text-primary me-2"></i>Artisan Description</h6>
+                <p class="text-secondary mb-0" style="line-height: 1.6;">
+                    @(string.IsNullOrWhiteSpace(Model.Description) 
+                        ? "Mastercrafted precision diorama model built with museum-grade detailing, authentic weathering, and brass scale couplers." 
+                        : Model.Description)
+                </p>
+            </div>
+
+            <!-- Specifications Table -->
+            <div class="card border shadow-sm mb-4">
+                <div class="card-header bg-white fw-bold text-dark py-2">
+                    <i class="fas fa-cogs text-secondary me-2"></i>Technical Specifications
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm table-striped mb-0 small">
+                        <tbody>
+                            <tr>
+                                <th class="ps-3 text-secondary" style="width: 35%;">Scale Ratio</th>
+                                <td class="fw-semibold text-dark">@(Model.Scale ?? "Universal Layout")</td>
+                            </tr>
+                            <tr>
+                                <th class="ps-3 text-secondary">Dimensions</th>
+                                <td class="fw-semibold text-dark">@(string.IsNullOrWhiteSpace(Model.DimensionsMm) ? "Standard Gauge" : $"{Model.DimensionsMm} mm")</td>
+                            </tr>
+                            <tr>
+                                <th class="ps-3 text-secondary">Unit Weight</th>
+                                <td class="fw-semibold text-dark">@(Model.WeightGrams.HasValue ? $"{Model.WeightGrams.Value:F1} g" : "Standard Scale")</td>
+                            </tr>
+                            <tr>
+                                <th class="ps-3 text-secondary">Edition Type</th>
+                                <td class="fw-semibold text-dark">@(Model.IsUnique ? "One-of-a-Kind Artisan Commission" : "Limited Production Run")</td>
+                            </tr>
+                            <tr>
+                                <th class="ps-3 text-secondary">Crafting Origin</th>
+                                <td class="fw-semibold text-dark">Handcrafted in Sri Lanka (The Turnout Studio)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Quantity & Actions -->
+            <div class="mt-auto pt-2">
+                @if (isInStock)
+                {
+                    <div class="row g-3 align-items-center mb-3">
+                        <div class="col-auto">
+                            <label for="detailQuantity" class="form-label fw-bold small text-secondary mb-0">Quantity:</label>
+                        </div>
+                        <div class="col-auto">
+                            <div class="input-group input-group-sm" style="width: 140px;">
+                                <button class="btn btn-outline-secondary px-3" type="button" onclick="adjustDetailQty(-1)">-</button>
+                                <input type="number" 
+                                       id="detailQuantity" 
+                                       class="form-control text-center fw-bold" 
+                                       value="1" 
+                                       min="1" 
+                                       max="@Model.StockQuantity" 
+                                       oninput="validateDetailQty(this, @Model.StockQuantity)" />
+                                <button class="btn btn-outline-secondary px-3" type="button" onclick="adjustDetailQty(1, @Model.StockQuantity)">+</button>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <span class="text-muted small">Max @Model.StockQuantity per order</span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 mb-4">
+                        <button id="btnAddToCartDetails" 
+                                type="button" 
+                                class="btn btn-primary btn-lg flex-grow-1 fw-bold shadow-sm" 
+                                onclick="addToCartFromDetails(@Model.ProductId, this)">
+                            <i class="fas fa-cart-plus me-2"></i>Add to Cart
+                        </button>
+
+                        <button id="btnBuyNowDetails" 
+                                type="button" 
+                                class="btn btn-warning btn-lg flex-grow-1 fw-bold text-dark shadow-sm" 
+                                onclick="buyNowFromDetails(@Model.ProductId, this)">
+                            <i class="fas fa-bolt me-2"></i>Buy Now &amp; Checkout
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
+                        <i class="fas fa-clock fa-2x me-3 text-warning"></i>
+                        <div>
+                            <strong>Temporarily Out of Stock</strong>
+                            <div class="small">Our master artisans are currently scratch-building the next unit. Check back soon or message our studio on WhatsApp for custom scale requests.</div>
+                        </div>
+                    </div>
+
+                    <a href="https://wa.me/94703856824?text=Hi%2C%20I%20am%20interested%20in%20preordering%20the%20@(Uri.EscapeDataString(Model.Name))%20(SKU:%20@(Model.Sku))" 
+                       target="_blank" 
+                       class="btn btn-outline-success btn-lg w-100 fw-bold mb-4">
+                        <i class="fab fa-whatsapp me-2"></i>Inquire on WhatsApp for Custom Build
+                    </a>
+                }
+
+                <!-- Trust / Value Proposition Banner -->
+                <div class="border rounded p-3 bg-light">
+                    <div class="row g-2 text-center text-secondary small">
+                        <div class="col-4 border-end">
+                            <i class="fas fa-shipping-fast text-primary d-block mb-1 fs-5"></i>
+                            <span>Insured Fragile Shipping</span>
+                        </div>
+                        <div class="col-4 border-end">
+                            <i class="fas fa-shield-alt text-success d-block mb-1 fs-5"></i>
+                            <span>30-Day Inspection</span>
+                        </div>
+                        <div class="col-4">
+                            <i class="fas fa-certificate text-warning d-block mb-1 fs-5"></i>
+                            <span>Artisan Certified</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // 1. Gallery Image Switcher with smooth fade transition
+        function switchGalleryImage(newUrl, thumbElement) {
+            if (!newUrl) return;
+
+            const mainImg = document.getElementById("mainProductImage");
+            const mainIcon = document.getElementById("mainProductIcon");
+
+            if (mainImg) {
+                mainImg.style.opacity = "0.2";
+                setTimeout(() => {
+                    mainImg.src = newUrl;
+                    mainImg.style.opacity = "1";
+                }, 150);
+            } else if (mainIcon) {
+                // If the product initially had only an icon, dynamically create the img element
+                const container = mainIcon.parentElement;
+                container.innerHTML = `<img id="mainProductImage" src="${newUrl}" alt="Product" class="img-fluid" style="max-height: 400px; max-width: 100%; object-fit: contain; transition: opacity 0.25s ease;" />`;
+            }
+
+            // Highlight selected thumbnail
+            document.querySelectorAll(".gallery-thumb").forEach(thumb => {
+                thumb.classList.remove("border-primary", "border-3", "active-thumb");
+                thumb.classList.add("opacity-75");
+            });
+
+            if (thumbElement) {
+                thumbElement.classList.remove("opacity-75");
+                thumbElement.classList.add("border-primary", "border-3", "active-thumb");
+            }
+        }
+
+        // 2. Quantity controls
+        function adjustDetailQty(delta, maxStock = 999) {
+            const input = document.getElementById("detailQuantity");
+            if (!input) return;
+
+            let current = parseInt(input.value) || 1;
+            let target = current + delta;
+
+            if (target < 1) target = 1;
+            if (target > maxStock) target = maxStock;
+
+            input.value = target;
+        }
+
+        function validateDetailQty(input, maxStock) {
+            let val = parseInt(input.value);
+            if (isNaN(val) || val < 1) {
+                input.value = 1;
+            } else if (val > maxStock) {
+                input.value = maxStock;
+            }
+        }
+
+        // 3. Add to Cart from Details Page
+        async function addToCartFromDetails(productId, buttonElement) {
+            const qtyInput = document.getElementById("detailQuantity");
+            const quantity = qtyInput ? (parseInt(qtyInput.value) || 1) : 1;
+
+            if (typeof handleAddToCart === "function") {
+                await handleAddToCart(productId, buttonElement, quantity, true);
+            }
+        }
+
+        // 4. Buy Now: Adds to cart without opening drawer, then redirects directly to Checkout
+        async function buyNowFromDetails(productId, buttonElement) {
+            const qtyInput = document.getElementById("detailQuantity");
+            const quantity = qtyInput ? (parseInt(qtyInput.value) || 1) : 1;
+
+            if (typeof handleAddToCart === "function") {
+                const originalText = buttonElement.innerHTML;
+                buttonElement.disabled = true;
+                buttonElement.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Preparing Checkout...';
+
+                const success = await handleAddToCart(productId, null, quantity, false);
+                if (success) {
+                    window.location.href = "/Checkout";
+                } else {
+                    buttonElement.disabled = false;
+                    buttonElement.innerHTML = originalText;
+                }
+            }
+        }
+    </script>
+}

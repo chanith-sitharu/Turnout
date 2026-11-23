@@ -1,0 +1,171 @@
+@model TurnoutStore.Data.Order
+@inject TurnoutStore.Services.ICurrencyService CurrencyService
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Order Confirmation - The Turnout Store";
+    var userCurrency = CurrencyService.GetUserCurrency(Context);
+    var convertedTotal = CurrencyService.ConvertPrice(Model.TotalAmount, "USD", userCurrency);
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-7">
+            <div class="card shadow border-0 text-center p-4 p-md-5">
+                <div class="mb-3">
+                    <img src="~/images/logo.png" alt="The Turnout Model Railway" class="rounded-circle bg-white shadow-sm p-2 border" style="width: 75px; height: 75px; object-fit: contain;" />
+                </div>
+                <div class="mb-4">
+                    <span class="rounded-circle bg-success text-white d-inline-flex justify-content-center align-items-center" style="width: 60px; height: 60px;">
+                        <i class="fas fa-check fa-2x"></i>
+                    </span>
+                </div>
+
+                <h2 class="fw-bold text-dark">Thank You for Your Order!</h2>
+                <p class="text-secondary mb-4">Your miniature items are being prepared with precision care and insured packaging.</p>
+
+                <!-- Dynamic Payment Status Alert -->
+                @if (Model.PaymentStatus == "Payment Issue")
+                {
+                    <div class="alert alert-danger text-start p-4 rounded-3 mb-4 shadow-sm border border-danger">
+                        <div class="d-flex align-items-start gap-3">
+                            <i class="fas fa-exclamation-triangle fa-2x text-danger mt-1"></i>
+                            <div>
+                                <h5 class="fw-bold mb-1">Attention: Payment Verification Issue</h5>
+                                <p class="mb-2 small">
+                                    Our accounts desk encountered an issue verifying your submitted bank transfer slip. Your order is on hold.
+                                </p>
+                                <div class="p-2 bg-white rounded border border-danger-subtle small">
+                                    <strong>Action Required:</strong> Please contact customer support immediately on WhatsApp at <strong>+94 70 385 6824</strong> or email <strong>info@theturnout.lk</strong> with your Order Reference <strong>#@Model.OrderId</strong> and a clear copy of your bank receipt.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else if (Model.PaymentStatus == "Pending Verification")
+                {
+                    <div class="alert alert-warning-subtle text-start p-3 rounded-3 mb-4 border border-warning shadow-sm">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fas fa-clock text-warning fs-5"></i>
+                            <div>
+                                <strong class="text-dark d-block">Bank Slip Uploaded &bull; Pending Verification</strong>
+                                <span class="small text-secondary">
+                                    Thank you! We have received your deposit slip. Our finance team will review the transaction and update your order within 1-2 business hours.
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else if (Model.PaymentStatus == "Payment Confirmed" || Model.PaymentStatus == "Paid")
+                {
+                    <div class="alert alert-success-subtle text-start p-3 rounded-3 mb-4 border border-success shadow-sm">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fas fa-check-circle text-success fs-5"></i>
+                            <div>
+                                <strong class="text-success d-block">Payment Confirmed &bull; Order in Processing</strong>
+                                <span class="small text-secondary">
+                                    Your bank transfer has been successfully verified. Your handcrafted models are being prepared for dispatch.
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <div class="alert alert-light border p-3 rounded mb-4 text-start">
+                    <div class="row g-2">
+                        <div class="col-sm-6">
+                            <span class="text-muted small d-block">Order Reference Number:</span>
+                            <strong class="fs-5 text-primary">#@Model.OrderId</strong>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="text-muted small d-block">Order Date:</span>
+                            <strong>@Model.CreatedAt.ToString("MMMM dd, yyyy - hh:mm tt") UTC</strong>
+                        </div>
+                        <div class="col-sm-6 mt-3">
+                            <span class="text-muted small d-block">Recipient:</span>
+                            <strong>@(Model.User != null ? $"{Model.User.FirstName} {Model.User.LastName}" : "Customer")</strong>
+                        </div>
+                        <div class="col-sm-6 mt-3">
+                            <span class="text-muted small d-block">Total Paid / Due:</span>
+                            <strong class="text-success fs-5">@CurrencyService.FormatPrice(convertedTotal, userCurrency)</strong>
+                            @if (userCurrency != "USD")
+                            {
+                                <small class="text-muted d-block">($@Model.TotalAmount.ToString("F2") USD)</small>
+                            }
+                        </div>
+                        <div class="col-sm-6 mt-3">
+                            <span class="text-muted small d-block">Payment Method:</span>
+                            <span class="fw-semibold text-dark"><i class="fas fa-university me-1 text-primary"></i>@Model.PaymentMethod</span>
+                        </div>
+                        <div class="col-sm-6 mt-3">
+                            <span class="text-muted small d-block">Payment Status:</span>
+                            @if (Model.PaymentStatus == "Payment Confirmed" || Model.PaymentStatus == "Paid")
+                            {
+                                <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Payment Confirmed</span>
+                            }
+                            else if (Model.PaymentStatus == "Payment Issue")
+                            {
+                                <span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i>Payment Issue</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Pending Verification</span>
+                            }
+
+                            @if (!string.IsNullOrEmpty(Model.PaymentSlipUrl))
+                            {
+                                <a href="@Model.PaymentSlipUrl" target="_blank" class="btn btn-sm btn-outline-secondary py-0 px-2 ms-2" title="View submitted deposit receipt">
+                                    <i class="fas fa-receipt me-1"></i>View Slip
+                                </a>
+                            }
+                        </div>
+                        <div class="col-12 mt-3">
+                            <span class="text-muted small d-block">Shipping Address:</span>
+                            <span>@Model.ShippingAddress</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Purchased Items Breakdown -->
+                @if (Model.OrderItems != null && Model.OrderItems.Any())
+                {
+                    <h5 class="fw-bold text-start mb-3"><i class="fas fa-box-open me-2 text-secondary"></i>Items Ordered</h5>
+                    <div class="table-responsive mb-4 text-start">
+                        <table class="table table-sm table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Item</th>
+                                    <th class="text-center" style="width: 80px;">Qty</th>
+                                    <th class="text-end" style="width: 100px;">Price</th>
+                                    <th class="text-end" style="width: 100px;">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.OrderItems)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">@(item.Product?.Name ?? $"Product #{item.ProductId}")</div>
+                                            <small class="text-muted">SKU: @(item.Product?.Sku ?? "N/A")</small>
+                                        </td>
+                                        <td class="text-center">@item.Quantity</td>
+                                        <td class="text-end">@CurrencyService.FormatPrice(CurrencyService.ConvertPrice(item.UnitPrice, "USD", userCurrency), userCurrency)</td>
+                                        <td class="text-end fw-bold">@CurrencyService.FormatPrice(CurrencyService.ConvertPrice(item.Subtotal, "USD", userCurrency), userCurrency)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                <div class="d-flex justify-content-center gap-3">
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-primary px-4 py-2 fw-semibold">
+                        <i class="fas fa-store me-1"></i> Continue Shopping
+                    </a>
+                    <button class="btn btn-outline-secondary px-4 py-2" onclick="window.print()">
+                        <i class="fas fa-print me-1"></i> Print Receipt
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

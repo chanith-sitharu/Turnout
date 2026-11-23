@@ -1,0 +1,231 @@
+@model IEnumerable<TurnoutStore.Data.Order>
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Order Management - Admin";
+}
+
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <a asp-action="Index" class="text-decoration-none text-muted small">
+                <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+            </a>
+            <h2 class="fw-bold mt-1 mb-0"><i class="fas fa-boxes-packing text-primary me-2"></i>Order Management</h2>
+            <p class="text-secondary mb-0">Review order details, inspect bank transfer receipts, and update fulfillment statuses.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="BankAccounts" class="btn btn-outline-primary fw-semibold">
+                <i class="fas fa-university me-1"></i> Manage Bank Accounts
+            </a>
+            <span class="badge bg-dark fs-6 px-3 py-2 align-self-center">Total Orders: @Model.Count()</span>
+        </div>
+    </div>
+
+    <!-- Alert Notifications -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Orders Table -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light small text-uppercase text-secondary">
+                        <tr>
+                            <th class="ps-3" style="width: 80px;">Order #</th>
+                            <th style="min-width: 130px;">Placed On</th>
+                            <th style="min-width: 170px;">Customer</th>
+                            <th style="min-width: 180px;">Items</th>
+                            <th style="min-width: 90px;">Total</th>
+                            <th style="min-width: 180px;">Payment &amp; Slip</th>
+                            <th style="min-width: 130px;">Fulfillment</th>
+                            <th class="text-end pe-3" style="min-width: 280px;">Actions &amp; Updates</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            @foreach (var order in Model)
+                            {
+                                <tr>
+                                    <td class="ps-3 fw-bold text-primary">#@order.OrderId</td>
+                                    <td class="small text-muted">
+                                        @order.CreatedAt.ToString("MMM dd, yyyy")<br />
+                                        <span class="text-secondary">@order.CreatedAt.ToString("hh:mm tt") UTC</span>
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold text-dark">
+                                            @(order.User != null ? $"{order.User.FirstName} {order.User.LastName}" : "Guest")
+                                        </div>
+                                        <div class="small text-muted">@(order.User?.Email ?? "N/A")</div>
+                                        @if (!string.IsNullOrEmpty(order.User?.PhoneNumber))
+                                        {
+                                            <div class="small text-secondary"><i class="fas fa-phone-alt me-1"></i>@order.User.PhoneNumber</div>
+                                        }
+                                        <div class="small text-truncate text-muted" style="max-width: 180px;" title="@order.ShippingAddress">
+                                            <i class="fas fa-map-marker-alt text-danger me-1"></i>@order.ShippingAddress
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if (order.OrderItems != null && order.OrderItems.Any())
+                                        {
+                                            <ul class="list-unstyled mb-0 small">
+                                                @foreach (var item in order.OrderItems)
+                                                {
+                                                    <li>
+                                                        <span class="fw-semibold">@(item.Product?.Name ?? $"Item #{item.ProductId}")</span>
+                                                        <span class="text-muted">(&times;@item.Quantity)</span>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">No items</span>
+                                        }
+                                    </td>
+                                    <td class="fw-bold text-dark fs-6">
+                                        $@order.TotalAmount.ToString("N2")
+                                    </td>
+
+                                    <!-- Payment Status & Bank Slip Column -->
+                                    <td>
+                                        <div class="mb-1">
+                                            @if (order.PaymentStatus == "Payment Confirmed" || order.PaymentStatus == "Paid")
+                                            {
+                                                <span class="badge bg-success px-2 py-1">
+                                                    <i class="fas fa-check-circle me-1"></i>Payment Confirmed
+                                                </span>
+                                            }
+                                            else if (order.PaymentStatus == "Payment Issue")
+                                            {
+                                                <span class="badge bg-danger px-2 py-1">
+                                                    <i class="fas fa-exclamation-triangle me-1"></i>Payment Issue
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning text-dark px-2 py-1">
+                                                    <i class="fas fa-clock me-1"></i>Pending Verification
+                                                </span>
+                                            }
+                                        </div>
+
+                                        <div class="small text-secondary mb-1">
+                                            <i class="fas fa-university me-1 text-primary"></i>@(string.IsNullOrEmpty(order.PaymentMethod) ? "Bank Transfer" : order.PaymentMethod)
+                                        </div>
+
+                                        <!-- View Slip Button -->
+                                        @if (!string.IsNullOrEmpty(order.PaymentSlipUrl))
+                                        {
+                                            <a href="@order.PaymentSlipUrl" target="_blank" class="btn btn-sm btn-outline-info text-dark fw-bold py-0 px-2 shadow-sm" title="Open bank receipt in new tab">
+                                                <i class="fas fa-file-invoice me-1"></i> View Slip
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="small text-muted">No slip attached</span>
+                                        }
+                                    </td>
+
+                                    <!-- Fulfillment Status -->
+                                    <td>
+                                        @if (order.OrderStatus == "Pending")
+                                        {
+                                            <span class="badge bg-warning text-dark"><i class="fas fa-hourglass-start me-1"></i>Pending</span>
+                                        }
+                                        else if (order.OrderStatus == "Processing")
+                                        {
+                                            <span class="badge bg-info text-dark"><i class="fas fa-cogs me-1"></i>Processing</span>
+                                        }
+                                        else if (order.OrderStatus == "Shipped")
+                                        {
+                                            <span class="badge bg-primary"><i class="fas fa-shipping-fast me-1"></i>Shipped</span>
+                                        }
+                                        else if (order.OrderStatus == "Completed" || order.OrderStatus == "Delivered")
+                                        {
+                                            <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>@order.OrderStatus</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i>@order.OrderStatus</span>
+                                        }
+                                    </td>
+
+                                    <!-- Actions & Forms -->
+                                    <td class="text-end pe-3">
+                                        <div class="d-flex flex-column gap-2 align-items-end">
+                                            <div class="d-flex gap-2 align-items-center">
+                                                <!-- Print Thermal Invoice -->
+                                                <a asp-action="PrintInvoice" asp-route-id="@order.OrderId" target="_blank" class="btn btn-sm btn-outline-dark fw-semibold" title="Print 80mm POS Thermal Slip">
+                                                    <i class="fas fa-print me-1"></i> Print Bill
+                                                </a>
+
+                                                <!-- Fulfillment Update Form -->
+                                                <form asp-action="UpdateOrderStatus" method="post" class="d-inline-flex gap-1 align-items-center mb-0">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="orderId" value="@order.OrderId" />
+
+                                                    <select name="newStatus" class="form-select form-select-sm" style="width: 120px;">
+                                                        <option value="Pending" selected="@(order.OrderStatus == "Pending")">Pending</option>
+                                                        <option value="Processing" selected="@(order.OrderStatus == "Processing")">Processing</option>
+                                                        <option value="Shipped" selected="@(order.OrderStatus == "Shipped")">Shipped</option>
+                                                        <option value="Completed" selected="@(order.OrderStatus == "Completed")">Completed</option>
+                                                        <option value="Cancelled" selected="@(order.OrderStatus == "Cancelled")">Cancelled</option>
+                                                    </select>
+
+                                                    <button type="submit" class="btn btn-sm btn-outline-primary fw-semibold" title="Update Fulfillment Status">
+                                                        Update
+                                                    </button>
+                                                </form>
+                                            </div>
+
+                                            <!-- Payment Status Update Form -->
+                                            <form asp-action="UpdatePaymentStatus" method="post" class="d-inline-flex gap-1 align-items-center mb-0">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="orderId" value="@order.OrderId" />
+
+                                                <select name="status" class="form-select form-select-sm" style="width: 175px;">
+                                                    <option value="Pending Verification" selected="@(order.PaymentStatus == "Pending Verification")">Pending Verification</option>
+                                                    <option value="Payment Confirmed" selected="@(order.PaymentStatus == "Payment Confirmed" || order.PaymentStatus == "Paid")">Payment Confirmed</option>
+                                                    <option value="Payment Issue" selected="@(order.PaymentStatus == "Payment Issue")">Payment Issue</option>
+                                                </select>
+
+                                                <button type="submit" class="btn btn-sm btn-outline-success fw-semibold" title="Update Payment Status">
+                                                    Set Payment
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center py-5 text-muted">
+                                    <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                                    <h5>No orders found in the database.</h5>
+                                    <p class="small">Orders will appear here automatically once customers checkout.</p>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

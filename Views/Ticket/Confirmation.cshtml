@@ -1,0 +1,100 @@
+@model TurnoutStore.Models.TicketBookingViewModel
+@inject TurnoutStore.Services.ICurrencyService CurrencyService
+@{
+    ViewData["Title"] = "Ticket Reservation Confirmed - The Turnout Store";
+    var activeCurrency = CurrencyService.GetUserCurrency(Context);
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-7">
+            <div class="card shadow border-0 text-center p-4 p-md-5 rounded-4">
+                <div class="mb-4">
+                    <span class="rounded-circle bg-success text-white d-inline-flex justify-content-center align-items-center" style="width: 85px; height: 85px;">
+                        <i class="fas fa-check fa-3x"></i>
+                    </span>
+                </div>
+
+                <h2 class="fw-bold text-dark mb-1">Ticket Reservation Confirmed!</h2>
+                <p class="text-secondary mb-4">We look forward to welcoming you to our miniature railway studio.</p>
+
+                <!-- Reservation Slip -->
+                <div class="alert alert-light border p-4 rounded-3 mb-4 text-start bg-white shadow-sm">
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <span class="text-muted small d-block">Reservation Reference:</span>
+                            <strong class="fs-4 text-primary">#TB-@Model.BookingId?.ToString("D5")</strong>
+                        </div>
+                        <div class="col-sm-6 text-sm-end">
+                            <span class="text-muted small d-block">Booking Status:</span>
+                            <span class="badge bg-success-subtle text-success fs-6 border border-success px-3 py-1">Confirmed</span>
+                        </div>
+
+                        <hr class="my-2 text-muted" />
+
+                        <div class="col-sm-6">
+                            <span class="text-muted small d-block">Primary Contact:</span>
+                            <strong>@Model.CustomerName</strong>
+                            <small class="d-block text-muted">@Model.PhoneNumber</small>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="text-muted small d-block">Visitor Category:</span>
+                            <strong class="@(Model.IsForeign ? "text-success" : "text-primary")">
+                                <i class="@(Model.IsForeign ? "fas fa-globe-americas" : "fas fa-id-card") me-1"></i>
+                                @(Model.IsForeign ? "Foreign Visitor" : "Local Resident")
+                            </strong>
+                        </div>
+
+                        <div class="col-sm-6 mt-3">
+                            <span class="text-muted small d-block">Scheduled Visit Date:</span>
+                            <strong>@Model.VisitDate.ToString("dddd, MMMM dd, yyyy")</strong>
+                        </div>
+                        <div class="col-sm-6 mt-3">
+                            <span class="text-muted small d-block">Time Slot:</span>
+                            <strong>@Model.TimeSlot</strong>
+                        </div>
+
+                        <div class="col-sm-6 mt-3">
+                            <span class="text-muted small d-block">Party Breakdown:</span>
+                            <span>@Model.AdultCount Adult(s), @Model.ChildCount Child(ren)</span>
+                        </div>
+                        <div class="col-sm-6 mt-3">
+                            <span class="text-muted small d-block">Total Due / Reserved:</span>
+                            <strong class="text-success fs-5">
+                                @CurrencyService.FormatPrice(Model.ConvertedTotal, Model.SelectedCurrency)
+                            </strong>
+                            @if (Model.BaseCurrency != Model.SelectedCurrency)
+                            {
+                                <small class="text-muted d-block">(Base: @Model.BaseCurrency @Model.BaseTotal.ToString("N2"))</small>
+                            }
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(Model.Notes))
+                        {
+                            <div class="col-12 mt-3">
+                                <span class="text-muted small d-block">Special Requests / Notes:</span>
+                                <span class="text-secondary small">@Model.Notes</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Studio Directions & Info -->
+                <div class="alert alert-warning-subtle border border-warning text-start p-3 rounded-3 mb-4 small">
+                    <h6 class="fw-bold mb-1"><i class="fas fa-map-marker-alt text-warning me-2"></i>Studio Location:</h6>
+                    <p class="mb-1">Cemetery Road, 18th Mile Post Junction, Western Province, Sri Lanka</p>
+                    <p class="mb-0 text-muted">Please arrive 10 minutes prior to your allocated time slot. Free on-site parking is available.</p>
+                </div>
+
+                <div class="d-flex justify-content-center gap-3">
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-primary px-4 py-2 fw-semibold">
+                        <i class="fas fa-store me-1"></i> Return to Store
+                    </a>
+                    <button class="btn btn-outline-secondary px-4 py-2" onclick="window.print()">
+                        <i class="fas fa-print me-1"></i> Print Pass
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

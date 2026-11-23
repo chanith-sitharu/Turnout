@@ -1,0 +1,277 @@
+@model IEnumerable<TurnoutStore.Data.TicketBooking>
+@inject TurnoutStore.Services.ICurrencyService CurrencyService
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Ticket Bookings Management - Admin";
+    var bookings = Model?.ToList() ?? new List<TurnoutStore.Data.TicketBooking>();
+    var totalAdults = bookings.Sum(b => b.AdultsCount);
+    var totalKids = bookings.Sum(b => b.KidsCount);
+    var upcomingCount = bookings.Count(b => b.VisitDate >= DateTime.Today);
+}
+
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <a asp-action="Index" class="text-decoration-none text-muted small">
+                <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+            </a>
+            <h2 class="fw-bold mt-1 mb-0"><i class="fas fa-ticket-alt text-warning me-2"></i>Exhibition Bookings</h2>
+            <p class="text-secondary mb-0">Manage customer studio visits, track attendee capacity, and print 80mm thermal receipts.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-controller="Ticket" asp-action="Book" target="_blank" class="btn btn-outline-primary fw-semibold">
+                <i class="fas fa-plus me-1"></i> New Walk-in Booking
+            </a>
+            <a asp-action="Orders" class="btn btn-outline-secondary fw-semibold">
+                <i class="fas fa-shopping-bag me-1"></i> View Orders
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Metric Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card shadow-sm border-0 border-start border-warning border-4 p-3 bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-muted small fw-semibold text-uppercase">Total Bookings</span>
+                        <h3 class="fw-bold text-dark mb-0 mt-1">@bookings.Count</h3>
+                    </div>
+                    <div class="rounded-circle bg-warning bg-opacity-10 p-3 text-warning">
+                        <i class="fas fa-clipboard-check fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card shadow-sm border-0 border-start border-primary border-4 p-3 bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-muted small fw-semibold text-uppercase">Upcoming Visits</span>
+                        <h3 class="fw-bold text-primary mb-0 mt-1">@upcomingCount</h3>
+                    </div>
+                    <div class="rounded-circle bg-primary bg-opacity-10 p-3 text-primary">
+                        <i class="fas fa-calendar-alt fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card shadow-sm border-0 border-start border-info border-4 p-3 bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-muted small fw-semibold text-uppercase">Total Attendees</span>
+                        <h3 class="fw-bold text-info mb-0 mt-1">@(totalAdults + totalKids)</h3>
+                        <small class="text-muted">(@totalAdults Adults, @totalKids Kids)</small>
+                    </div>
+                    <div class="rounded-circle bg-info bg-opacity-10 p-3 text-info">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card shadow-sm border-0 border-start border-success border-4 p-3 bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-muted small fw-semibold text-uppercase">Thermal Printer</span>
+                        <h5 class="fw-bold text-success mb-0 mt-1">80mm Ready</h5>
+                        <small class="text-muted">Receipts auto-formatted</small>
+                    </div>
+                    <div class="rounded-circle bg-success bg-opacity-10 p-3 text-success">
+                        <i class="fas fa-print fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search / Filter Card -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-3">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+                        <input type="text" id="bookingSearchInput" class="form-control border-start-0" placeholder="Search by customer name, phone, or booking ID..." onkeyup="filterBookingsTable()">
+                    </div>
+                </div>
+                <div class="col-md-6 text-md-end text-muted small">
+                    Showing <strong id="bookingVisibleCount">@bookings.Count</strong> of @bookings.Count bookings
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bookings Table -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="bookingsTable">
+                    <thead class="table-light small text-uppercase text-secondary">
+                        <tr>
+                            <th class="ps-3" style="width: 100px;">Ref #</th>
+                            <th style="min-width: 170px;">Visit Schedule</th>
+                            <th style="min-width: 190px;">Lead Customer</th>
+                            <th style="min-width: 130px;">Category</th>
+                            <th style="min-width: 140px;">Headcount</th>
+                            <th style="min-width: 130px;">Total Price</th>
+                            <th style="min-width: 110px;">Status</th>
+                            <th style="min-width: 130px;">Booked On</th>
+                            <th class="text-end pe-3" style="min-width: 220px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (bookings.Any())
+                        {
+                            foreach (var item in bookings)
+                            {
+                                var isForeign = item.TicketType.Contains("Foreign", StringComparison.OrdinalIgnoreCase);
+                                var isPast = item.VisitDate.Date < DateTime.Today;
+                                var isToday = item.VisitDate.Date == DateTime.Today;
+
+                                <tr class="booking-row">
+                                    <!-- Ref # -->
+                                    <td class="ps-3">
+                                        <span class="badge bg-dark font-monospace">#TB-@item.BookingId.ToString("D5")</span>
+                                    </td>
+
+                                    <!-- Visit Schedule -->
+                                    <td>
+                                        <div class="fw-bold @(isToday ? "text-primary" : "")">
+                                            <i class="fas fa-calendar-day me-1 text-secondary"></i>
+                                            @item.VisitDate.ToString("yyyy-MM-dd (ddd)")
+                                            @if (isToday)
+                                            {
+                                                <span class="badge bg-primary ms-1">TODAY</span>
+                                            }
+                                            else if (isPast)
+                                            {
+                                                <span class="badge bg-light text-muted border ms-1">Past</span>
+                                            }
+                                        </div>
+                                        <small class="text-muted"><i class="fas fa-clock me-1 text-secondary"></i>@item.TimeSlot</small>
+                                    </td>
+
+                                    <!-- Customer Details -->
+                                    <td>
+                                        <div class="fw-semibold text-dark">@item.CustomerName</div>
+                                        <div class="small text-muted">
+                                            <i class="fas fa-phone me-1"></i>@item.PhoneNumber
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(item.Notes))
+                                        {
+                                            <div class="small text-truncate text-secondary" style="max-width: 220px;" title="@item.Notes">
+                                                <i class="fas fa-sticky-note me-1 text-warning"></i>@item.Notes
+                                            </div>
+                                        }
+                                    </td>
+
+                                    <!-- Category -->
+                                    <td>
+                                        @if (isForeign)
+                                        {
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                                <i class="fas fa-globe-americas me-1"></i>Foreign
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
+                                                <i class="fas fa-id-card me-1"></i>Local
+                                            </span>
+                                        }
+                                    </td>
+
+                                    <!-- Pax Counts -->
+                                    <td>
+                                        <span class="badge bg-secondary me-1">@item.AdultsCount Adult@(item.AdultsCount > 1 ? "s" : "")</span>
+                                        @if (item.KidsCount > 0)
+                                        {
+                                            <span class="badge bg-light text-dark border">@item.KidsCount Child@(item.KidsCount > 1 ? "ren" : "")</span>
+                                        }
+                                    </td>
+
+                                    <!-- Total Price & Currency -->
+                                    <td>
+                                        <span class="fw-bold text-success fs-6">
+                                            @(isForeign ? "$" : "Rs. ")@item.TotalPrice.ToString("N2")
+                                        </span>
+                                        <small class="d-block text-muted">@(isForeign ? "USD" : "LKR")</small>
+                                    </td>
+
+                                    <!-- Booking Status -->
+                                    <td>
+                                        <span class="badge bg-success px-2 py-1">
+                                            <i class="fas fa-check-circle me-1"></i>@item.BookingStatus
+                                        </span>
+                                    </td>
+
+                                    <!-- Created Date -->
+                                    <td class="small text-muted">
+                                        @item.CreatedAt.ToString("MMM dd, yyyy")<br />
+                                        <span class="text-secondary">@item.CreatedAt.ToString("hh:mm tt")</span>
+                                    </td>
+
+                                    <!-- Actions -->
+                                    <td class="text-end pe-3">
+                                        <div class="d-inline-flex gap-1">
+                                            <!-- Print 80mm Thermal Bill (target="_blank") -->
+                                            <a asp-action="PrintTicketBill" asp-route-id="@item.BookingId" target="_blank" class="btn btn-sm btn-dark fw-semibold" title="Print 80mm Thermal Receipt">
+                                                <i class="fas fa-print me-1"></i> Print Bill
+                                            </a>
+                                            <!-- View / Download PDF Pass -->
+                                            <a asp-controller="Ticket" asp-action="TicketSuccess" asp-route-id="@item.BookingId" target="_blank" class="btn btn-sm btn-outline-primary" title="View Digital Pass">
+                                                <i class="fas fa-id-badge me-1"></i> Pass
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="9" class="text-center py-5 text-muted">
+                                    <i class="fas fa-ticket-alt fa-3x mb-3 text-secondary opacity-50"></i>
+                                    <h5>No ticket bookings recorded yet.</h5>
+                                    <p class="small text-secondary mb-3">Reservations placed via the website or walk-in desk will appear here.</p>
+                                    <a asp-controller="Ticket" asp-action="Book" target="_blank" class="btn btn-sm btn-warning fw-bold">
+                                        <i class="fas fa-plus me-1"></i> Create First Booking
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function filterBookingsTable() {
+        const input = document.getElementById("bookingSearchInput").value.toLowerCase();
+        const rows = document.querySelectorAll("#bookingsTable tbody tr.booking-row");
+        let visible = 0;
+
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            if (text.includes(input)) {
+                row.style.display = "";
+                visible++;
+            } else {
+                row.style.display = "none";
+            }
+        });
+
+        const badge = document.getElementById("bookingVisibleCount");
+        if (badge) badge.innerText = visible;
+    }
+</script>
+}
