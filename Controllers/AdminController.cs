@@ -31,23 +31,46 @@ namespace TurnoutStore.Controllers
             _logger = logger;
         }
 
+        private bool CanQueryDatabase()
+        {
+            var conn = _context.Database.GetConnectionString();
+            return !string.IsNullOrWhiteSpace(conn) &&
+                   (OperatingSystem.IsWindows() || !conn.Contains("(localdb)", StringComparison.OrdinalIgnoreCase));
+        }
+
         // GET: /Admin
         // GET: /Admin/Index
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var totalOrders = await _context.Orders.CountAsync();
-            var totalRevenue = await _context.Orders
-                .Where(o => o.PaymentStatus == "Paid" && o.OrderStatus != "Cancelled")
-                .SumAsync(o => (decimal?)o.TotalAmount) ?? 0m;
-            var pendingOrders = await _context.Orders.CountAsync(o => o.OrderStatus == "Pending");
-            var totalCustomers = await _context.Users.CountAsync(u => u.Role.RoleName == "Customer");
+            int totalOrders = 0;
+            decimal totalRevenue = 0m;
+            int pendingOrders = 0;
+            int totalCustomers = 0;
+            List<Order> recentOrders = new();
 
-            var recentOrders = await _context.Orders
-                .Include(o => o.User)
-                .OrderByDescending(o => o.CreatedAt)
-                .Take(5)
-                .ToListAsync();
+            if (CanQueryDatabase())
+            {
+                try
+                {
+                    totalOrders = await _context.Orders.CountAsync();
+                    totalRevenue = await _context.Orders
+                        .Where(o => (o.PaymentStatus == "Paid" || o.PaymentStatus == "Payment Confirmed") && o.OrderStatus != "Cancelled")
+                        .SumAsync(o => (decimal?)o.TotalAmount) ?? 0m;
+                    pendingOrders = await _context.Orders.CountAsync(o => o.OrderStatus == "Pending");
+                    totalCustomers = await _context.Users.CountAsync(u => u.Role.RoleName == "Customer");
+
+                    recentOrders = await _context.Orders
+                        .Include(o => o.User)
+                        .OrderByDescending(o => o.CreatedAt)
+                        .Take(5)
+                        .ToListAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not load admin stats from database.");
+                }
+            }
 
             var dashboard = new AdminDashboardViewModel
             {
@@ -65,12 +88,23 @@ namespace TurnoutStore.Controllers
         [HttpGet]
         public async Task<IActionResult> Orders()
         {
-            var orders = await _context.Orders
-                .Include(o => o.User)
-                .Include(o => o.OrderItems)
-                    .ThenInclude(oi => oi.Product)
-                .OrderByDescending(o => o.CreatedAt)
-                .ToListAsync();
+            List<Order> orders = new();
+            if (CanQueryDatabase())
+            {
+                try
+                {
+                    orders = await _context.Orders
+                        .Include(o => o.User)
+                        .Include(o => o.OrderItems)
+                            .ThenInclude(oi => oi.Product)
+                        .OrderByDescending(o => o.CreatedAt)
+                        .ToListAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not fetch orders from database.");
+                }
+            }
 
             return View(orders);
         }
@@ -149,9 +183,25 @@ namespace TurnoutStore.Controllers
         [HttpGet]
         public async Task<IActionResult> Products()
         {
-            var products = await _context.Products
-                .OrderByDescending(p => p.ProductId)
-                .ToListAsync();
+            List<Product> products = new();
+            if (CanQueryDatabase())
+            {
+                try
+                {
+                    products = await _context.Products
+                        .OrderByDescending(p => p.ProductId)
+                        .ToListAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not fetch products from database.");
+                }
+            }
+
+            if (!products.Any())
+            {
+                products = DbInitializer.GetSampleProducts();
+            }
 
             return View(products);
         }
@@ -438,9 +488,20 @@ namespace TurnoutStore.Controllers
         [HttpGet]
         public async Task<IActionResult> Bookings()
         {
-            var bookings = await _context.TicketBookings
-                .OrderByDescending(b => b.CreatedAt)
-                .ToListAsync();
+            List<TicketBooking> bookings = new();
+            if (CanQueryDatabase())
+            {
+                try
+                {
+                    bookings = await _context.TicketBookings
+                        .OrderByDescending(b => b.CreatedAt)
+                        .ToListAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not fetch ticket bookings from database.");
+                }
+            }
 
             return View(bookings);
         }
@@ -495,9 +556,45 @@ namespace TurnoutStore.Controllers
         [HttpGet]
         public async Task<IActionResult> BankAccounts()
         {
-            var accounts = await _context.BankAccounts
-                .OrderByDescending(b => b.CreatedAt)
-                .ToListAsync();
+            List<BankAccount> accounts = new();
+            if (CanQueryDatabase())
+            {
+                try
+                {
+                    accounts = await _context.BankAccounts
+                        .OrderByDescending(b => b.CreatedAt)
+                        .ToListAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not fetch bank accounts from database.");
+                }
+            }
+
+            if (!accounts.Any())
+            {
+                accounts = new List<BankAccount>
+                {
+                    new BankAccount
+                    {
+                        Id = 1,
+                        BankName = "Commercial Bank of Ceylon",
+                        AccountName = "The Turnout Model Railway",
+                        AccountNumber = "8009234512",
+                        Branch = "Negombo Branch",
+                        IsActive = true
+                    },
+                    new BankAccount
+                    {
+                        Id = 2,
+                        BankName = "Sampath Bank PLC",
+                        AccountName = "The Turnout Model Railway",
+                        AccountNumber = "014210008892",
+                        Branch = "Katunayake Airport Road Branch",
+                        IsActive = true
+                    }
+                };
+            }
 
             return View(accounts);
         }

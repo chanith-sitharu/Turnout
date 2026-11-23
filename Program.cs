@@ -31,9 +31,11 @@ builder.Services.AddAntiforgery(options =>
 });
 
 // 3. Register AppDbContext with SQL Server or PostgreSQL (Render/Cloud)
-var rawConnection = builder.Configuration.GetConnectionString("DefaultConnection")
+// Read cloud database environment variables FIRST (DATABASE_URL takes priority over local appsettings.json)
+var rawConnection = Environment.GetEnvironmentVariable("DATABASE_URL")
                     ?? builder.Configuration["DATABASE_URL"]
-                    ?? Environment.GetEnvironmentVariable("DATABASE_URL");
+                    ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+                    ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
@@ -43,10 +45,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
          parsedConnection.Contains("Port=5432", StringComparison.OrdinalIgnoreCase) ||
          parsedConnection.Contains("Username=", StringComparison.OrdinalIgnoreCase)))
     {
+        Console.WriteLine("[TurnoutStore] Configured PostgreSQL provider from DATABASE_URL.");
         options.UseNpgsql(parsedConnection);
     }
     else
     {
+        Console.WriteLine("[TurnoutStore] Configured SQL Server provider.");
         options.UseSqlServer(rawConnection ?? "Server=(localdb)\\mssqllocaldb;Database=TurnoutStoreDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True");
     }
 });
@@ -152,7 +156,7 @@ static string? ConvertPostgresUrlToConnectionString(string? url)
         var port = uri.Port > 0 ? uri.Port : 5432;
         var database = uri.AbsolutePath.TrimStart('/');
 
-        return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;";
+        return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Prefer;Trust Server Certificate=true;";
     }
     catch
     {
