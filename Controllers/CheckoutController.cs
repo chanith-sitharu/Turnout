@@ -52,17 +52,28 @@ namespace TurnoutStore.Controllers
                 return RedirectToAction("Index", "Home");
             }
 
-            List<BankAccount> bankAccounts;
-            try
+            var conn = _context.Database.GetConnectionString();
+            var canQuery = !string.IsNullOrWhiteSpace(conn) &&
+                           (OperatingSystem.IsWindows() || !conn.Contains("(localdb)", StringComparison.OrdinalIgnoreCase));
+
+            List<BankAccount> bankAccounts = new();
+            if (canQuery)
             {
-                bankAccounts = await _context.BankAccounts
-                    .Where(b => b.IsActive)
-                    .OrderBy(b => b.Id)
-                    .ToListAsync();
+                try
+                {
+                    bankAccounts = await _context.BankAccounts
+                        .Where(b => b.IsActive)
+                        .OrderBy(b => b.Id)
+                        .ToListAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not fetch bank accounts from database. Using fallback accounts.");
+                }
             }
-            catch (Exception ex)
+
+            if (!bankAccounts.Any())
             {
-                _logger.LogWarning(ex, "Could not fetch bank accounts from database. Using fallback accounts.");
                 bankAccounts = new List<BankAccount>
                 {
                     new BankAccount
@@ -71,6 +82,14 @@ namespace TurnoutStore.Controllers
                         AccountName = "The Turnout Model Railway",
                         AccountNumber = "8009234512",
                         Branch = "Negombo Branch",
+                        IsActive = true
+                    },
+                    new BankAccount
+                    {
+                        BankName = "Sampath Bank PLC",
+                        AccountName = "The Turnout Model Railway",
+                        AccountNumber = "014210008892",
+                        Branch = "Katunayake Airport Road Branch",
                         IsActive = true
                     }
                 };

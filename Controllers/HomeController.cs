@@ -27,26 +27,40 @@ namespace TurnoutStore.Controllers
             _logger = logger;
         }
 
+        private bool CanQueryDatabase()
+        {
+            var conn = _context.Database.GetConnectionString();
+            return !string.IsNullOrWhiteSpace(conn) &&
+                   (OperatingSystem.IsWindows() || !conn.Contains("(localdb)", StringComparison.OrdinalIgnoreCase));
+        }
+
         // GET: /
         // GET: /Home/Index
         public async Task<IActionResult> Index()
         {
             List<Product> products;
-            try
+            if (CanQueryDatabase())
             {
-                products = await _context.Products
-                    .Where(p => p.IsActive)
-                    .OrderByDescending(p => p.CreatedAt)
-                    .ToListAsync();
-
-                if (!products.Any())
+                try
                 {
+                    products = await _context.Products
+                        .Where(p => p.IsActive)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .ToListAsync();
+
+                    if (!products.Any())
+                    {
+                        products = DbInitializer.GetSampleProducts();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not fetch products from database. Displaying sample product catalog.");
                     products = DbInitializer.GetSampleProducts();
                 }
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogWarning(ex, "Could not fetch products from database. Displaying sample product catalog.");
                 products = DbInitializer.GetSampleProducts();
             }
 
@@ -58,14 +72,17 @@ namespace TurnoutStore.Controllers
         public async Task<IActionResult> Details(int id)
         {
             Product? product = null;
-            try
+            if (CanQueryDatabase())
             {
-                product = await _context.Products
-                    .FirstOrDefaultAsync(p => p.ProductId == id && p.IsActive);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Could not fetch product #{Id} from database. Falling back to sample catalog.", id);
+                try
+                {
+                    product = await _context.Products
+                        .FirstOrDefaultAsync(p => p.ProductId == id && p.IsActive);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not fetch product #{Id} from database. Falling back to sample catalog.", id);
+                }
             }
 
             if (product == null)

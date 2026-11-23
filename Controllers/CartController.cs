@@ -36,17 +36,24 @@ namespace TurnoutStore.Controllers
 
         private async Task<Product?> GetProductByIdAsync(int productId)
         {
-            try
+            var conn = _context.Database.GetConnectionString();
+            var canQuery = !string.IsNullOrWhiteSpace(conn) &&
+                           (OperatingSystem.IsWindows() || !conn.Contains("(localdb)", StringComparison.OrdinalIgnoreCase));
+
+            if (canQuery)
             {
-                var product = await _context.Products.FindAsync(productId);
-                if (product != null)
+                try
                 {
-                    return product;
+                    var product = await _context.Products.FindAsync(productId);
+                    if (product != null)
+                    {
+                        return product;
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Could not query database for product #{ProductId}. Falling back to sample product catalog.", productId);
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not query database for product #{ProductId}. Falling back to sample product catalog.", productId);
+                }
             }
 
             // Fallback to sample catalog if database is offline or unconfigured
