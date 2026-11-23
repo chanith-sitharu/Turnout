@@ -31,10 +31,24 @@ namespace TurnoutStore.Controllers
         // GET: /Home/Index
         public async Task<IActionResult> Index()
         {
-            var products = await _context.Products
-                .Where(p => p.IsActive)
-                .OrderByDescending(p => p.CreatedAt)
-                .ToListAsync();
+            List<Product> products;
+            try
+            {
+                products = await _context.Products
+                    .Where(p => p.IsActive)
+                    .OrderByDescending(p => p.CreatedAt)
+                    .ToListAsync();
+
+                if (!products.Any())
+                {
+                    products = DbInitializer.GetSampleProducts();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not fetch products from database. Displaying sample product catalog.");
+                products = DbInitializer.GetSampleProducts();
+            }
 
             return View(products);
         }
@@ -43,8 +57,21 @@ namespace TurnoutStore.Controllers
         [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
-            var product = await _context.Products
-                .FirstOrDefaultAsync(p => p.ProductId == id && p.IsActive);
+            Product? product = null;
+            try
+            {
+                product = await _context.Products
+                    .FirstOrDefaultAsync(p => p.ProductId == id && p.IsActive);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not fetch product #{Id} from database. Falling back to sample catalog.", id);
+            }
+
+            if (product == null)
+            {
+                product = DbInitializer.GetSampleProducts().FirstOrDefault(p => p.ProductId == id);
+            }
 
             if (product == null)
             {

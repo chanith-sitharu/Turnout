@@ -74,8 +74,7 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "A fatal error occurred while migrating or seeding the database.");
-        throw;
+        logger.LogWarning(ex, "Database initialization could not complete at startup. Continuing web application startup.");
     }
 }
 

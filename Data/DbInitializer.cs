@@ -175,6 +175,34 @@ namespace TurnoutStore.Data
 
         public static void Initialize(AppDbContext context, IConfiguration config, ILogger logger, IPasswordService passwordService)
         {
+            var connStr = context.Database.GetConnectionString();
+            if (string.IsNullOrWhiteSpace(connStr))
+            {
+                logger.LogWarning("No connection string found. Skipping database migration.");
+                return;
+            }
+
+            // LocalDB is Windows-only. In Linux/Docker, skip LocalDB without attempting connection to prevent named-pipe/GSSAPI native crashes
+            if (!OperatingSystem.IsWindows() && connStr.Contains("(localdb)", StringComparison.OrdinalIgnoreCase))
+            {
+                logger.LogWarning("Running in Linux/container environment with a Windows LocalDB connection string. LocalDB is Windows-only. Skipping database initialization until a production SQL Server is configured in the environment variables.");
+                return;
+            }
+
+            try
+            {
+                if (!context.Database.CanConnect())
+                {
+                    logger.LogWarning("Cannot reach the configured SQL database. Skipping migration and seeding.");
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to connect to SQL database during startup check. Skipping migration and seeding.");
+                return;
+            }
+
             try
             {
                 // Ensure migration history is baselined if transitioning from a pre-migration database

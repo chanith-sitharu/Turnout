@@ -52,13 +52,34 @@ namespace TurnoutStore.Controllers
                 return RedirectToAction("Index", "Home");
             }
 
+            List<BankAccount> bankAccounts;
+            try
+            {
+                bankAccounts = await _context.BankAccounts
+                    .Where(b => b.IsActive)
+                    .OrderBy(b => b.Id)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not fetch bank accounts from database. Using fallback accounts.");
+                bankAccounts = new List<BankAccount>
+                {
+                    new BankAccount
+                    {
+                        BankName = "Commercial Bank of Ceylon",
+                        AccountName = "The Turnout Model Railway",
+                        AccountNumber = "8009234512",
+                        Branch = "Negombo Branch",
+                        IsActive = true
+                    }
+                };
+            }
+
             var model = new CheckoutViewModel
             {
                 CartItems = cart,
-                ActiveBankAccounts = await _context.BankAccounts
-                    .Where(b => b.IsActive)
-                    .OrderBy(b => b.Id)
-                    .ToListAsync()
+                ActiveBankAccounts = bankAccounts
             };
 
             if (User.Identity != null && User.Identity.IsAuthenticated)

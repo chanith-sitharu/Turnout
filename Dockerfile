@@ -20,6 +20,9 @@ RUN dotnet publish "TurnoutStore.csproj" -c Release -o /app/publish /p:UseAppHos
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 
+# Install libgssapi-krb5-2 to support SQL Client authentication without native segfaults
+RUN apt-get update && apt-get install -y --no-install-recommends libgssapi-krb5-2 curl && rm -rf /var/lib/apt/lists/*
+
 # Ensure runtime directories exist for user file uploads
 RUN mkdir -p /app/wwwroot/uploads/slips /app/wwwroot/images/products
 
