@@ -175,75 +175,92 @@ namespace TurnoutStore.Data
 
         public static void Initialize(AppDbContext context, IConfiguration config, ILogger logger, IPasswordService passwordService)
         {
-            var connStr = context.Database.GetConnectionString();
-            if (string.IsNullOrWhiteSpace(connStr))
+            if (context.Database.IsNpgsql())
             {
-                logger.LogWarning("No connection string found. Skipping database migration.");
-                return;
-            }
-
-            // LocalDB is Windows-only. In Linux/Docker, skip LocalDB without attempting connection to prevent named-pipe/GSSAPI native crashes
-            if (!OperatingSystem.IsWindows() && connStr.Contains("(localdb)", StringComparison.OrdinalIgnoreCase))
-            {
-                logger.LogWarning("Running in Linux/container environment with a Windows LocalDB connection string. LocalDB is Windows-only. Skipping database initialization until a production SQL Server is configured in the environment variables.");
-                return;
-            }
-
-            try
-            {
-                if (!context.Database.CanConnect())
+                logger.LogInformation("PostgreSQL detected (Render / Cloud). Initializing database schema...");
+                try
                 {
-                    logger.LogWarning("Cannot reach the configured SQL database. Skipping migration and seeding.");
+                    context.Database.EnsureCreated();
+                    logger.LogInformation("PostgreSQL schema created/verified successfully.");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to initialize PostgreSQL database schema.");
                     return;
                 }
             }
-            catch (Exception ex)
+            else
             {
-                logger.LogWarning(ex, "Failed to connect to SQL database during startup check. Skipping migration and seeding.");
-                return;
-            }
+                var connStr = context.Database.GetConnectionString();
+                if (string.IsNullOrWhiteSpace(connStr))
+                {
+                    logger.LogWarning("No connection string found. Skipping database migration.");
+                    return;
+                }
 
-            try
-            {
-                // Ensure migration history is baselined if transitioning from a pre-migration database
-                EnsureDatabaseBaselined(context, logger);
+                // LocalDB is Windows-only. In Linux/Docker, skip LocalDB without attempting connection to prevent named-pipe/GSSAPI native crashes
+                if (!OperatingSystem.IsWindows() && connStr.Contains("(localdb)", StringComparison.OrdinalIgnoreCase))
+                {
+                    logger.LogWarning("Running in Linux/container environment with a Windows LocalDB connection string. LocalDB is Windows-only. Skipping database initialization until a production database is configured.");
+                    return;
+                }
 
-                // Execute real EF Core database migrations
-                context.Database.Migrate();
-                logger.LogInformation("Database migration applied successfully.");
-            }
-            catch (Microsoft.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number == 2714)
-            {
-                logger.LogWarning(sqlEx, "Migration detected existing database objects (SQL Error 2714). Forcing baseline registration in __EFMigrationsHistory...");
                 try
                 {
-                    context.Database.ExecuteSqlRaw(@"
-                        IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
-                        BEGIN
-                            CREATE TABLE [__EFMigrationsHistory] (
-                                [MigrationId] nvarchar(150) NOT NULL,
-                                [ProductVersion] nvarchar(32) NOT NULL,
-                                CONSTRAINT [PK___EFMigrationsHistory] PRIMARY KEY ([MigrationId])
-                            );
-                        END;
-                        IF NOT EXISTS (SELECT 1 FROM [__EFMigrationsHistory] WHERE [MigrationId] = '20261116000000_InitialCreate')
-                        BEGIN
-                            INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-                            VALUES ('20261116000000_InitialCreate', '8.0.8');
-                        END;
-                    ");
-                    logger.LogInformation("Successfully registered InitialCreate baseline following error 2714.");
+                    if (!context.Database.CanConnect())
+                    {
+                        logger.LogWarning("Cannot reach the configured SQL database. Skipping migration and seeding.");
+                        return;
+                    }
                 }
-                catch (Exception innerEx)
+                catch (Exception ex)
                 {
-                    logger.LogError(innerEx, "Failed to register baseline after error 2714.");
+                    logger.LogWarning(ex, "Failed to connect to SQL database during startup check. Skipping migration and seeding.");
+                    return;
+                }
+
+                try
+                {
+                    // Ensure migration history is baselined if transitioning from a pre-migration database
+                    EnsureDatabaseBaselined(context, logger);
+
+                    // Execute real EF Core database migrations
+                    context.Database.Migrate();
+                    logger.LogInformation("Database migration applied successfully.");
+                }
+                catch (Microsoft.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number == 2714)
+                {
+                    logger.LogWarning(sqlEx, "Migration detected existing database objects (SQL Error 2714). Forcing baseline registration in __EFMigrationsHistory...");
+                    try
+                    {
+                        context.Database.ExecuteSqlRaw(@"
+                            IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
+                            BEGIN
+                                CREATE TABLE [__EFMigrationsHistory] (
+                                    [MigrationId] nvarchar(150) NOT NULL,
+                                    [ProductVersion] nvarchar(32) NOT NULL,
+                                    CONSTRAINT [PK___EFMigrationsHistory] PRIMARY KEY ([MigrationId])
+                                );
+                            END;
+                            IF NOT EXISTS (SELECT 1 FROM [__EFMigrationsHistory] WHERE [MigrationId] = '20261116000000_InitialCreate')
+                            BEGIN
+                                INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+                                VALUES ('20261116000000_InitialCreate', '8.0.8');
+                            END;
+                        ");
+                        logger.LogInformation("Successfully registered InitialCreate baseline following error 2714.");
+                    }
+                    catch (Exception innerEx)
+                    {
+                        logger.LogError(innerEx, "Failed to register baseline after error 2714.");
+                        throw;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "An error occurred while applying EF Core database migrations.");
                     throw;
                 }
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "An error occurred while applying EF Core database migrations.");
-                throw;
             }
 
             // Seed Admin User from Configuration / User-Secrets / Env
