@@ -2,6 +2,7 @@ using System;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,6 +12,14 @@ using TurnoutStore.Data;
 using TurnoutStore.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Forwarded Headers for Cloud Reverse Proxies (Render, Cloudflare, etc.)
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 // 1. Add MVC Controllers and Views
 builder.Services.AddControllersWithViews();
@@ -60,6 +69,9 @@ builder.Services.AddSession(options =>
 });
 
 var app = builder.Build();
+
+// Forward headers from reverse proxy (Render / Cloudflare)
+app.UseForwardedHeaders();
 
 // 7. Apply Database Migrations and Seed Initial Data at Startup
 using (var scope = app.Services.CreateScope())
